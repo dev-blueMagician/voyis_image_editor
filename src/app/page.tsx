@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Tabs, Tab, Card, CardBody } from '@nextui-org/react';
+import { Paper, Typography, Box } from '@mui/material';
 import axios from 'axios';
 import UploadPanel from '../components/UploadPanel';
 import GalleryViewer from '../components/GalleryViewer';
@@ -91,66 +91,48 @@ export default function Home() {
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <Card className="rounded-none border-b shadow-sm">
-        <CardBody className="py-4">
-          <div className="flex items-center justify-center">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Voyis Image Editor
-            </h1>
-          </div>
-        </CardBody>
-      </Card>
+      <Paper elevation={1} sx={{ borderRadius: 0, borderBottom: 1 }}>
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+            Voyis Image Editor
+          </Typography>
+        </Box>
+      </Paper>
 
       <div className="flex flex-1 overflow-hidden p-4 gap-4">
         {/* Left Panel */}
-        <div className="w-80 space-y-4 overflow-y-auto">
-          <Card className="shadow-lg hover:shadow-xl transition-shadow">
-            <CardBody>
+        <Box sx={{ width: 320, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+          <Paper elevation={3}>
+            <Box sx={{ p: 2 }}>
               <UploadPanel onUpload={handleUpload} refreshTrigger={refreshStats} />
-            </CardBody>
-          </Card>
+            </Box>
+          </Paper>
 
-          <Card className="shadow-lg hover:shadow-xl transition-shadow">
-            <CardBody>
+          <Paper elevation={3}>
+            <Box sx={{ p: 2 }}>
               <ControlPanel />
-            </CardBody>
-          </Card>
-        </div>
+            </Box>
+          </Paper>
+        </Box>
 
         {/* Center Panel */}
-        <div className="flex-1 overflow-hidden">
-          <Card className="h-full shadow-lg hover:shadow-xl transition-shadow">
-            <CardBody className="p-0 h-full">
+        <Box sx={{ flex: 1, overflow: 'hidden' }}>
+          <Paper elevation={3} sx={{ height: '100%' }}>
+            <Box sx={{ p: 0, height: '100%' }}>
               {selectedImage ? (
                 <ImageViewer image={selectedImage} onBack={handleBackToGallery} />
               ) : (
-                <div className="h-full flex flex-col">
-                  <Tabs
-                    aria-label="Viewer options"
-                    variant="underlined"
-                    color="primary"
-                    size="lg"
-                    className="flex-shrink-0"
-                  >
-                    <Tab key="gallery" title="🖼️ Gallery">
-                      <GalleryControls
-                        selectedImages={selectedImages}
-                        onSelectAll={handleSelectAll}
-                        onDeleteSelected={handleDeleteSelected}
-                        images={images}
-                      />
-                    </Tab>
-                    <Tab key="viewer" title="👁️ Single Viewer">
-                      <div className="flex items-center justify-center h-32">
-                        <div className="text-center text-gray-500">
-                          <div className="text-4xl mb-2">📷</div>
-                          <p className="text-sm">Select an image from the gallery to view</p>
-                        </div>
-                      </div>
-                    </Tab>
-                  </Tabs>
+                <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <Box sx={{ flexShrink: 0 }}>
+                    <GalleryControls
+                      selectedImages={selectedImages}
+                      onSelectAll={handleSelectAll}
+                      onDeleteSelected={handleDeleteSelected}
+                      images={images}
+                    />
+                  </Box>
 
-                  <div className="flex-1 overflow-auto p-4">
+                  <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
                     <GalleryViewer
                       onSelectImage={handleSelectImage}
                       onStatsUpdate={handleStatsUpdate}
@@ -159,34 +141,34 @@ export default function Home() {
                       selectedImages={selectedImages}
                       setSelectedImages={setSelectedImages}
                     />
-                  </div>
-                </div>
+                  </Box>
+                </Box>
               )}
-            </CardBody>
-          </Card>
-        </div>
+            </Box>
+          </Paper>
+        </Box>
       </div>
 
       {/* Bottom Panel - Split into two equal parts */}
-      <div className="flex border-t shadow-sm" style={{ height: '200px' }}>
+      <Box sx={{ display: 'flex', borderTop: 1, boxShadow: 1, height: '200px' }}>
         {/* Left: System Logs */}
-        <div className="flex-1 border-r">
-          <Card className="rounded-none h-full">
-            <CardBody className="p-3 h-full">
+        <Box sx={{ flex: 1, borderRight: 1 }}>
+          <Paper elevation={0} sx={{ borderRadius: 0, height: '100%' }}>
+            <Box sx={{ p: 1.5, height: '100%' }}>
               <LogPanel />
-            </CardBody>
-          </Card>
-        </div>
+            </Box>
+          </Paper>
+        </Box>
 
         {/* Right: EXIF Data Management */}
-        <div className="flex-1">
-          <Card className="rounded-none h-full">
-            <CardBody className="p-3 h-full">
+        <Box sx={{ flex: 1 }}>
+          <Paper elevation={0} sx={{ borderRadius: 0, height: '100%' }}>
+            <Box sx={{ p: 1.5, height: '100%' }}>
               <ExifPanel selectedImageId={selectedImage?.id} />
-            </CardBody>
-          </Card>
-        </div>
-      </div>
+            </Box>
+          </Paper>
+        </Box>
+      </Box>
     </div>
   );
 }

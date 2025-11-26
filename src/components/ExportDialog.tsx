@@ -2,17 +2,20 @@
 
 import { useState } from 'react';
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Button,
+  FormControl,
+  InputLabel,
   Select,
-  SelectItem,
-  Input,
-  Chip
-} from '@nextui-org/react';
+  MenuItem,
+  TextField,
+  Chip,
+  Box,
+  Typography
+} from '@mui/material';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -69,82 +72,83 @@ export default function ExportDialog({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="md">
-      <ModalContent>
-        <ModalHeader>
-          <h3 className="text-xl font-semibold">Batch Export Images</h3>
-        </ModalHeader>
+    <Dialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        <Typography variant="h6" component="h2">
+          Batch Export Images
+        </Typography>
+      </DialogTitle>
 
-        <ModalBody className="space-y-4">
-          <div>
-            <p className="text-sm text-gray-600 mb-2">
-              Exporting <Chip color="primary" size="sm">{selectedCount}</Chip> selected images
-            </p>
-          </div>
+      <DialogContent>
+        <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <Box>
+            <Typography variant="body2" color="text.secondary">
+              Exporting <Chip color="primary" size="small" label={selectedCount} /> selected images
+            </Typography>
+          </Box>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Output Format</label>
+          <FormControl fullWidth>
+            <InputLabel>Output Format</InputLabel>
             <Select
-              placeholder="Select format"
               value={selectedFormat}
-              onChange={(e) => setSelectedFormat(e.target.value)}
-              className="w-full"
+              label="Output Format"
+              onChange={(e: any) => setSelectedFormat(e.target.value)}
             >
               {formatOptions.map((format) => (
-                <SelectItem key={format.key} value={format.key}>
+                <MenuItem key={format.key} value={format.key}>
                   {format.label} ({format.extension})
-                </SelectItem>
+                </MenuItem>
               ))}
             </Select>
-          </div>
+          </FormControl>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Output Folder</label>
-            <div className="flex gap-2">
-              <Input
+          <Box>
+            <Typography variant="body2" sx={{ mb: 1, fontWeight: 'medium' }}>
+              Output Folder
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <TextField
                 placeholder="Select output folder..."
                 value={outputFolder}
-                readOnly
-                className="flex-1"
+                InputProps={{ readOnly: true }}
+                fullWidth
               />
               <Button
-                color="secondary"
-                variant="flat"
-                onPress={handleSelectFolder}
-                startContent={<span>📁</span>}
+                variant="outlined"
+                onClick={handleSelectFolder}
+                sx={{ minWidth: 'auto', px: 2 }}
               >
-                Browse
+                📁
               </Button>
-            </div>
-          </div>
+            </Box>
+          </Box>
 
-          <div className="bg-blue-50 p-3 rounded-lg">
-            <p className="text-sm text-blue-800">
+          <Box sx={{ bgcolor: 'info.main', color: 'info.contrastText', p: 2, borderRadius: 1 }}>
+            <Typography variant="body2">
               <strong>Note:</strong> Images will be converted to the selected format and saved to the chosen folder.
               Original files will not be modified.
-            </p>
-          </div>
-        </ModalBody>
+            </Typography>
+          </Box>
+        </Box>
+      </DialogContent>
 
-        <ModalFooter>
-          <Button
-            color="default"
-            variant="light"
-            onPress={onClose}
-            disabled={isExporting}
-          >
-            Cancel
-          </Button>
-          <Button
-            color="primary"
-            onPress={handleExport}
-            disabled={!selectedFormat || !outputFolder || isExporting}
-            isLoading={isExporting}
-          >
-            {isExporting ? 'Exporting...' : 'Export Images'}
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+      <DialogActions>
+        <Button
+          onClick={onClose}
+          disabled={isExporting}
+          color="inherit"
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleExport}
+          disabled={!selectedFormat || !outputFolder || isExporting}
+          variant="contained"
+          color="primary"
+        >
+          {isExporting ? 'Exporting...' : 'Export Images'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }

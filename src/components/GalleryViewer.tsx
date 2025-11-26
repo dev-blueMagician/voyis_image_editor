@@ -1,7 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardBody, Image, Button, Checkbox, Select, SelectItem, Chip, Badge } from '@nextui-org/react';
+import {
+  Card,
+  CardContent,
+  CardMedia,
+  Typography,
+  Button,
+  Checkbox,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Box,
+  Chip,
+  Badge
+} from '@mui/material';
 import axios from 'axios';
 import JSZip from 'jszip';
 
@@ -206,7 +220,7 @@ export default function GalleryViewer({
               </div>
             </div> */}
 
-            <div className="flex gap-2">
+            {/* <div className="flex gap-2">
               <Button
                 color="primary"
                 variant="solid"
@@ -234,7 +248,7 @@ export default function GalleryViewer({
               >
                 Delete Selected
               </Button>
-            </div>
+            </div> */}
           </div>
         </>
       )}
@@ -244,62 +258,70 @@ export default function GalleryViewer({
           return (
             <Card
               key={image.id}
-              className={`cursor-pointer transition-all duration-200 ${
-                isSelected
-                  ? 'ring-2 ring-blue-500 shadow-lg scale-105'
-                  : 'hover:shadow-lg hover:scale-102'
-              }`}
-              onPress={() => handleSelectImage(image.id, !isSelected)}
+              sx={{
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                ...(isSelected && {
+                  border: 2,
+                  borderColor: 'primary.main',
+                  boxShadow: 3,
+                  transform: 'scale(1.05)'
+                }),
+                '&:hover': {
+                  boxShadow: 3,
+                  transform: 'scale(1.02)'
+                }
+              }}
+              onClick={() => handleSelectImage(image.id, !isSelected)}
               onDoubleClick={(e) => {
                 e.stopPropagation();
                 handleImageClick(image);
               }}
             >
-              <CardBody className="p-3">
-                <div className="relative z-10">
-                  <Image
-                    src={`http://localhost:3001${image.filepath}`}
+              <CardContent sx={{ p: 1.5 }}>
+                <Box sx={{ position: 'relative' }}>
+                  <CardMedia
+                    component="img"
+                    image={`http://localhost:3001${image.filepath}`}
                     alt={image.filename}
-                    className="w-full h-32 object-cover rounded-lg pointer-events-auto"
+                    sx={{ width: '100%', height: 128, objectFit: 'cover', borderRadius: 1 }}
                   />
                   <Checkbox
-                    className="absolute bottom-2 right-2 z-10"
-                    isSelected={isSelected}
-                    onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                    onValueChange={(checked) => {
-                      handleSelectImage(image.id, checked)
+                    sx={{ position: 'absolute', bottom: 8, right: 8 }}
+                    checked={isSelected}
+                    onChange={(e, checked) => {
+                      e.stopPropagation();
+                      handleSelectImage(image.id, checked);
                     }}
                     color="primary"
-                    size="lg"
-                    radius="full"
                   />
-                  <Badge
+                  <Chip
+                    label={image.mimetype.split('/')[1].toUpperCase()}
                     color="primary"
-                    variant="flat"
-                    className="absolute top-2 right-2"
+                    size="small"
+                    sx={{ position: 'absolute', top: 8, right: 8 }}
+                  />
+                </Box>
+                <Box sx={{ mt: 1 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 'medium',
+                      textAlign: 'center',
+                      color: isSelected ? 'primary.main' : 'inherit'
+                    }}
+                    noWrap
                   >
-                    {image.mimetype.split('/')[1].toUpperCase()}
-                  </Badge>
-                  {isSelected && (
-                    <div className="absolute inset-0 bg-blue-500 bg-opacity-20 rounded-lg border-2 border-blue-500 pointer-events-none z-0"></div>
-                  )}
-                </div>
-                <div className="mt-2">
-                  <p className={`text-sm font-medium truncate ${
-                    isSelected ? 'text-blue-600' : ''
-                  }`}>
                     {image.filename}
-                  </p>
-                  <div className="flex justify-between items-center mt-1">
-                    <Chip size="sm" variant="flat" color="secondary">
-                      {(image.size / 1024).toFixed(0)} KB
-                    </Chip>
-                    <span className="text-xs text-gray-500">
+                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
+                    <Chip size="small" color="secondary" label={`${(image.size / 1024).toFixed(0)} KB`} />
+                    <Typography variant="caption" color="text.secondary">
                       {new Date(image.uploaded_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </CardBody>
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
             </Card>
           );
         })}

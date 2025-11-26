@@ -1,7 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button, Checkbox, Select, SelectItem } from '@nextui-org/react';
+import {
+  Button,
+  Checkbox,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Box,
+  Typography
+} from '@mui/material';
 import axios from 'axios';
 import JSZip from 'jszip';
 import ExportDialog from './ExportDialog';
@@ -38,6 +47,8 @@ export default function GalleryControls({
 }: GalleryControlsProps) {
   const [filter, setFilter] = useState<string>('all');
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+
+  console.log('selectedImages', selectedImages.size)
 
   const handleExportClick = () => {
     setIsExportDialogOpen(true);
@@ -160,18 +171,19 @@ export default function GalleryControls({
         </div>
 
         {/* Right: Filter */}
-        <Select
-          // label="Filter by Type"
-          placeholder="All Types"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="w-48"
-        >
-          <SelectItem key="all" value="all">All Types</SelectItem>
-          <SelectItem key="jpeg" value="jpeg">JPEG Images</SelectItem>
-          <SelectItem key="png" value="png">PNG Images</SelectItem>
-          <SelectItem key="tiff" value="tiff">TIFF Images</SelectItem>
-        </Select>
+        <FormControl sx={{ minWidth: 192 }}>
+          <InputLabel>Filter by Type</InputLabel>
+          <Select
+            value={filter}
+            label="Filter by Type"
+            onChange={(e: any) => setFilter(e.target.value)}
+          >
+            <MenuItem value="all">All Types</MenuItem>
+            <MenuItem value="jpeg">JPEG Images</MenuItem>
+            <MenuItem value="png">PNG Images</MenuItem>
+            <MenuItem value="tiff">TIFF Images</MenuItem>
+          </Select>
+        </FormControl>
       </div>
 
       <ExportDialog
