@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: voyis_db
+      POSTGRES_USER: voyis_user
+      POSTGRES_PASSWORD: voyis_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  api:
+    build: ./server
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://voyis_user:voyis_pass@postgres:5432/voyis_db
+    depends_on:
+      - postgres
+    volumes:
+      - ./server/uploads:/app/uploads
+      - ./mock_data:/app/mock_data
+
+volumes:
+  postgres_data:
