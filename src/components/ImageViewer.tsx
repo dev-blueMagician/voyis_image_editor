@@ -1,7 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Button, Card, CardBody, Chip, Spacer } from '@nextui-org/react';
+import {
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Box,
+  Typography,
+  CircularProgress
+} from '@mui/material';
 
 interface ImageData {
   id: number;
@@ -245,71 +253,80 @@ export default function ImageViewer({ image, onBack }: ImageViewerProps) {
   if (!image) return null;
 
   return (
-    <div className="w-full h-full flex flex-col p-4">
-      <Card className="mb-4">
-        <CardBody>
-          <div className="flex justify-between items-center">
-                      {/* <Button
-            variant="contained"
-            color="primary"
-            onClick={handleExportClick}
-            disabled={selectedImages.size === 0}
-            startIcon={<span>📁</span>}
-          >
-            Export to Folder
-          </Button> */}
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Button
+              variant="contained"
               color="primary"
-              variant="solid"
-              onPress={onBack}
-              startContent={<span>⬅️</span>}
+              onClick={onBack}
+              startIcon={<span>⬅️</span>}
             >
               Back to Gallery
             </Button>
-            <h3 className="text-xl font-bold text-center flex-1">{image.filename}</h3>
-            <div className="flex gap-2">
+            <Typography variant="h5" sx={{ fontWeight: 'bold', textAlign: 'center', flex: 1 }}>
+              {image.filename}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
+                variant="contained"
                 color="primary"
-                onPress={handleCrop}
-                startContent={<span>✂️</span>}
+                onClick={handleCrop}
+                startIcon={<span>✂️</span>}
               >
                 Crop Selection
               </Button>
-            </div>
-          </div>
-        </CardBody>
+            </Box>
+          </Box>
+        </CardContent>
       </Card>
 
-      <Card className="flex-1">
-        <CardBody className="p-0 h-full">
+      <Card sx={{ flex: 1 }}>
+        <CardContent sx={{ p: 0, height: '100%' }}>
           {!fabricLoaded ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-lg">Loading image editor...</p>
-              </div>
-            </div>
+            <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <CircularProgress size={48} sx={{ mb: 2 }} />
+                <Typography variant="h6">Loading image editor...</Typography>
+              </Box>
+            </Box>
           ) : (
-            <canvas ref={canvasRef} width={800} height={600} className="w-full h-full rounded-lg" />
+            <Box
+              component="canvas"
+              ref={canvasRef}
+              width={1600}
+              height={1200}
+              sx={{ width: '100%', height: '100%', borderRadius: 1 }}
+            />
           )}
-        </CardBody>
+        </CardContent>
       </Card>
 
-      <Card className="mt-4">
-        <CardBody>
-          <div className="grid grid-cols-3 gap-4">
-            <Chip color="primary" variant="flat" className="justify-center">
-              📏 {(image.size / 1024 / 1024).toFixed(2)} MB
-            </Chip>
-            <Chip color="secondary" variant="flat" className="justify-center">
-              🏷️ {image.mimetype.split('/')[1].toUpperCase()}
-            </Chip>
-            <Chip color="default" variant="flat" className="justify-center">
-              📅 {new Date(image.uploaded_at).toLocaleDateString()}
-            </Chip>
-          </div>
-        </CardBody>
+      <Card sx={{ mt: 2 }}>
+        <CardContent>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+            <Chip
+              color="primary"
+              variant="filled"
+              label={`📏 ${(image.size / 1024 / 1024).toFixed(2)} MB`}
+              sx={{ justifyContent: 'center' }}
+            />
+            <Chip
+              color="secondary"
+              variant="filled"
+              label={`🏷️ ${image.mimetype.split('/')[1].toUpperCase()}`}
+              sx={{ justifyContent: 'center' }}
+            />
+            <Chip
+              color="default"
+              variant="filled"
+              label={`📅 ${new Date(image.uploaded_at).toLocaleDateString()}`}
+              sx={{ justifyContent: 'center' }}
+            />
+          </Box>
+        </CardContent>
       </Card>
-    </div>
+    </Box>
   );
 }

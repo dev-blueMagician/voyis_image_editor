@@ -1,7 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardBody, Button, Input, Chip, image } from '@nextui-org/react';
+import {
+  Card,
+  CardContent,
+  Button,
+  TextField,
+  Chip,
+  Box,
+  Typography
+} from '@mui/material';
 import axios from 'axios';
 
 interface ExifData {
@@ -66,57 +74,63 @@ export default function ExifPanel({ selectedImageId }: ExifPanelProps) {
   };
 
   return (
-    <Card className="w-full">
-      <CardBody>
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+    <Card sx={{ width: '100%' }}>
+      <CardContent>
+        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
           🏷️ Image Properties
-        </h3>
+        </Typography>
 
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm text-gray-600 mb-2">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               {selectedImageId
                 ? ''
                 : 'Select an image from the gallery'
               }
-            </p>
+            </Typography>
             {loading && (
-              <Chip color="primary" size="sm" className="mb-2">
-                Loading Properties...
-              </Chip>
+              <Chip
+                color="primary"
+                size="small"
+                label="Loading Properties..."
+                sx={{ mb: 1 }}
+              />
             )}
-          </div>
+          </Box>
 
           {exifData && (
-            <div className="space-y-1">
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               <Button
+                variant="contained"
                 color="success"
-                onPress={handleInsertExif}
-                size="sm"
+                onClick={handleInsertExif}
+                size="small"
               >
                 Update Properties
               </Button>
-              <div className="max-h-60 overflow-y-auto space-y-2">
+              <Box sx={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {Object.entries(exifData).map(([key, value]) => (
-                  <div key={key} className="flex gap-2 items-center">
-                    <Chip size="sm" variant="flat" color="primary" className="min-w-fit">
-                      {key}
-                    </Chip>
-                    <Input
-                      size="sm"
-                      value={String(value)}
-                      onChange={(e) => handleExifChange(key, e.target.value)}
-                      className="flex-1"
+                  <Box key={key} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Chip
+                      size="small"
+                      variant="filled"
+                      color="primary"
+                      label={key}
+                      sx={{ minWidth: 'fit-content' }}
                     />
-                  </div>
+                    <TextField
+                      size="small"
+                      value={String(value)}
+                      onChange={(e: any) => handleExifChange(key, e.target.value)}
+                      sx={{ flex: 1 }}
+                    />
+                  </Box>
                 ))}
-              </div>
-
-
-            </div>
+              </Box>
+            </Box>
           )}
-        </div>
-      </CardBody>
+        </Box>
+      </CardContent>
     </Card>
   );
 }

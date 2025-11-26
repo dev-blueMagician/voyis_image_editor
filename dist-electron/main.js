@@ -5,6 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const sharp_1 = __importDefault(require("sharp"));
 let mainWindow = null;
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
@@ -33,6 +35,49 @@ electron_1.ipcMain.on("upload-images", (event, files, folderPath) => {
 });
 electron_1.ipcMain.on("convert-images", (event, files, folderPath, format) => {
     console.log("Convert request", files, folderPath, format);
+});
+// Handle folder selection
+electron_1.ipcMain.handle('select-folder', async () => {
+    const result = await electron_1.dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory']
+    });
+    if (result.canceled) {
+        return null;
+    }
+    return result.filePaths[0];
+});
+// Handle image export with format conversion
+electron_1.ipcMain.handle('export-images', async (event, files, folderPath, format) => {
+    try {
+        for (const file of files) {
+            const response = await fetch(`http://localhost:3001${file.url}`);
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            // Convert image format using Sharp
+            let outputBuffer;
+            const outputPath = path_1.default.join(folderPath, `${file.name.split('.')[0]}.${format}`);
+            switch (format) {
+                case 'jpeg':
+                case 'jpg':
+                    outputBuffer = await (0, sharp_1.default)(buffer).jpeg().toBuffer();
+                    break;
+                case 'png':
+                    outputBuffer = await (0, sharp_1.default)(buffer).png().toBuffer();
+                    break;
+                case 'tiff':
+                    outputBuffer = await (0, sharp_1.default)(buffer).tiff().toBuffer();
+                    break;
+                default:
+                    outputBuffer = buffer;
+            }
+            fs_1.default.writeFileSync(outputPath, outputBuffer);
+        }
+        return { success: true };
+    }
+    catch (error) {
+        console.error('Export error:', error);
+        throw error;
+    }
 });
 /* -------------------------------
      APP LIFE CYCLE

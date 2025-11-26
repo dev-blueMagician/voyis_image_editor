@@ -1,7 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button, Card, CardBody, Progress, Input, Spacer, Chip } from '@nextui-org/react';
+import {
+  Button,
+  Card,
+  CardContent,
+  LinearProgress,
+  TextField,
+  Box,
+  Chip,
+  Typography
+} from '@mui/material';
 import axios from 'axios';
 
 interface UploadResult {
@@ -92,94 +101,112 @@ export default function UploadPanel({ onUpload, refreshTrigger }: { onUpload: ()
   };
 
   return (
-    <div className="w-full">
-      <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+    <Box sx={{ width: '100%' }}>
+      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
         📤 File Upload
-      </h3>
+      </Typography>
 
-      <div className="space-y-4">
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Card
-          className={`border-2 border-dashed transition-all duration-200 ${
-            isDragOver
-              ? 'border-primary-500 bg-primary-50 scale-105'
-              : 'border-primary-300 hover:border-primary-400'
-          }`}
+          sx={{
+            border: '2px dashed',
+            borderColor: isDragOver ? 'primary.main' : 'primary.light',
+            bgcolor: isDragOver ? 'primary.light' : 'background.paper',
+            transition: 'all 0.2s',
+            transform: isDragOver ? 'scale(1.02)' : 'scale(1)',
+            cursor: 'pointer'
+          }}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <CardBody className="text-center py-8">
-            <div className="mb-4">
-              <div className={`text-4xl mb-2 transition-transform ${isDragOver ? 'scale-110' : ''}`}>
+          <CardContent sx={{ textAlign: 'center', py: 4 }}>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="h2" sx={{ mb: 1, transition: 'transform 0.2s', transform: isDragOver ? 'scale(1.1)' : 'scale(1)' }}>
                 {isDragOver ? '📂' : '📁'}
-              </div>
-              <p className="text-lg font-medium">
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'medium' }}>
                 {isDragOver ? 'Drop images here!' : 'Drop images here or click to browse'}
-              </p>
-              <p className="text-sm text-gray-500">Supports JPG, PNG, TIF up to 4K resolution</p>
-            </div>
-            <Input
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Supports JPG, PNG, TIF up to 4K resolution
+              </Typography>
+            </Box>
+            <TextField
               type="file"
-              multiple
-              accept="image/*"
+              inputProps={{ multiple: true, accept: 'image/*' }}
               onChange={handleInputChange}
               disabled={uploading}
-              className="hidden"
+              sx={{ display: 'none' }}
               id="file-upload"
             />
             <label htmlFor="file-upload">
               <Button
+                variant="contained"
                 color="primary"
-                variant="solid"
-                as="span"
+                component="span"
                 disabled={uploading}
-                startContent={<span>📎</span>}
-                className="cursor-pointer"
+                startIcon={<span>📎</span>}
+                sx={{ cursor: 'pointer' }}
               >
                 {uploading ? 'Uploading...' : 'Choose Files'}
               </Button>
             </label>
-          </CardBody>
+          </CardContent>
         </Card>
 
         {uploading && (
-          <Card className="border-2 border-blue-200 bg-blue-50">
-            <CardBody>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Uploading files...</span>
-                  <Chip color="primary" size="sm">{progress}%</Chip>
-                </div>
-                <Progress
+          <Card sx={{ border: '2px solid', borderColor: 'info.light', bgcolor: 'info.light' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                    Uploading files...
+                  </Typography>
+                  <Chip color="primary" size="small" label={`${progress}%`} />
+                </Box>
+                <LinearProgress
+                  variant="determinate"
                   value={progress}
                   color="primary"
-                  size="md"
-                  className="w-full"
+                  sx={{ width: '100%' }}
                 />
-              </div>
-            </CardBody>
+              </Box>
+            </CardContent>
           </Card>
         )}
 
-        <Card className="border-2 border-info-200 bg-info-50">
-          <CardBody>
-            <h4 className="font-semibold mb-3 flex items-center gap-2">
+        <Card sx={{ border: '2px solid', borderColor: 'info.light', bgcolor: 'info.light' }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
               📊 Total Statistics
-            </h4>
-            <div className="grid grid-cols-1 gap-2">
-              <Chip color="primary" variant="flat" size="lg" className="justify-center py-2">
-                Total File Count: {totalStats.files}
-              </Chip>
-              <Chip color="secondary" variant="flat" size="lg" className="justify-center py-2">
-                Total File Size: {(totalStats.size / 1024 / 1024).toFixed(2)} MB
-              </Chip>
-              <Chip color={totalStats.corrupted > 0 ? "danger" : "default"} variant="flat" size="lg" className="justify-center py-2">
-                Number of Corrupted Images: {totalStats.corrupted}
-              </Chip>
-            </div>
-          </CardBody>
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Chip
+                color="primary"
+                variant="filled"
+                size="medium"
+                label={`Total File Count: ${totalStats.files}`}
+                sx={{ justifyContent: 'center', py: 1 }}
+              />
+              <Chip
+                color="secondary"
+                variant="filled"
+                size="medium"
+                label={`Total File Size: ${(totalStats.size / 1024 / 1024).toFixed(2)} MB`}
+                sx={{ justifyContent: 'center', py: 1 }}
+              />
+              <Chip
+                color={totalStats.corrupted > 0 ? "error" : "default"}
+                variant="filled"
+                size="medium"
+                label={`Number of Corrupted Images: ${totalStats.corrupted}`}
+                sx={{ justifyContent: 'center', py: 1 }}
+              />
+            </Box>
+          </CardContent>
         </Card>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
