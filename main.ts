@@ -1,108 +1,75 @@
-// main.js
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const path = require('path');
-const fs = require('fs');
-const sharp = require('sharp');
+import { app, BrowserWindow, ipcMain, IpcMainEvent } from "electron";
+import path from "path";
 
-app.commandLine.appendSwitch('--disable-gpu');
-app.commandLine.appendSwitch('--disable-gpu-compositing');
-app.commandLine.appendSwitch('--disable-gpu-sandbox');
-app.commandLine.appendSwitch('--disable-software-rasterizer');
-app.commandLine.appendSwitch('--no-sandbox');
-
-let mainWindow;
+let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 800,
     webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
-      enableRemoteModule: false,
-      webSecurity: false,
     },
   });
 
-  // Load your Next.js app
-  mainWindow.loadURL('http://localhost:3000');
+  const isDev = !app.isPackaged;
 
-  mainWindow.on('closed', () => {
+  const url = isDev
+    ? "http://localhost:3000"
+    : "http://localhost:3000"; // Next.js server started by Electron
+
+  mainWindow.loadURL(url);
+
+  mainWindow.on("closed", () => {
     mainWindow = null;
   });
 }
 
-// IPC handlers
-ipcMain.handle('select-folder', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory']
-  });
-  return result.filePaths[0];
-});
+/* -------------------------------
+     IPC EVENTS (Typed)
+-------------------------------- */
 
-ipcMain.handle('save-files', async (event, files, folderPath) => {
-  for (const file of files) {
-    const response = await fetch(file.url);
-    const buffer = await response.arrayBuffer();
-    const filePath = path.join(folderPath, file.name);
-    fs.writeFileSync(filePath, Buffer.from(buffer));
+ipcMain.on(
+  "upload-images",
+  (
+    event: IpcMainEvent,
+    files: string[],
+    folderPath: string
+  ): void => {
+    console.log("Upload request", files, folderPath);
   }
-  return true;
-});
+);
 
-ipcMain.handle('export-images', async (event, files, folderPath, format) => {
-  for (const file of files) {
-    try {
-      // Download the image
-      const response = await fetch(file.url);
-      const buffer = Buffer.from(await response.arrayBuffer());
+ipcMain.on(
+  "convert-images",
+  (
+    event: IpcMainEvent,
+    files: string[],
+    folderPath: string,
+    format: string
+  ): void => {
+    console.log("Convert request", files, folderPath, format);
+  }
+);
 
-      // Convert format using Sharp
-      let sharpInstance = sharp(buffer);
+/* -------------------------------
+     APP LIFE CYCLE
+-------------------------------- */
 
-      // Apply format conversion
-      switch (format) {
-        case 'jpg':
-        case 'jpeg':
-          sharpInstance = sharpInstance.jpeg({ quality: 90 });
-          break;
-        case 'png':
-          sharpInstance = sharpInstance.png({ quality: 90 });
-          break;
-        case 'tiff':
-          sharpInstance = sharpInstance.tiff({ quality: 90 });
-          break;
-        case 'webp':
-          sharpInstance = sharpInstance.webp({ quality: 90 });
-          break;
-        default:
-          // Keep original format
-          break;
-      }
+app.whenReady().then(() => {
+  createWindow();
 
-      // Generate output filename
-      const ext = format === 'jpg' ? 'jpg' : format;
-      const baseName = path.parse(file.name).name;
-      const outputFileName = `${baseName}.${ext}`;
-      const outputPath = path.join(folderPath, outputFileName);
-
-      // Save converted image
-      await sharpInstance.toFile(outputPath);
-    } catch (error) {
-      console.error(`Failed to export ${file.name}:`, error);
-      throw error;
+  app.on("activate", () => {
+    if (mainWindow === null) {
+      createWindow();
     }
+  });
+});
+
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
   }
-  return true;
-});
-
-// Electron events
-app.on('ready', createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
-
-app.on('activate', () => {
-  if (!mainWindow) createWindow();
 });
