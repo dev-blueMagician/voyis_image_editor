@@ -26,6 +26,7 @@ export default function Home() {
   const [refreshStats, setRefreshStats] = useState(0);
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
+  const [filter, setFilter] = useState<string>('all');
 
   // Fetch images on mount and when refreshGallery changes
   useEffect(() => {
@@ -129,6 +130,8 @@ export default function Home() {
                       onSelectAll={handleSelectAll}
                       onDeleteSelected={handleDeleteSelected}
                       images={images}
+                      filter={filter}
+                      onFilterChange={setFilter}
                     />
                   </Box>
 
@@ -140,6 +143,7 @@ export default function Home() {
                       showControls={false}
                       selectedImages={selectedImages}
                       setSelectedImages={setSelectedImages}
+                      filter={filter}
                     />
                   </Box>
                 </Box>
@@ -150,7 +154,7 @@ export default function Home() {
       </div>
 
       {/* Bottom Panel - Split into two equal parts */}
-      <Box sx={{ display: 'flex', borderTop: 1, boxShadow: 1, height: '200px' }}>
+      <Box sx={{ display: 'flex', borderTop: 1, boxShadow: 1 }}>
         {/* Left: System Logs */}
         <Box sx={{ flex: 1, borderRight: 1 }}>
           <Paper elevation={0} sx={{ borderRadius: 0, height: '100%' }}>

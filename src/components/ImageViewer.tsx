@@ -249,9 +249,18 @@ export default function ImageViewer({ image, onBack }: ImageViewerProps) {
       <Card className="mb-4">
         <CardBody>
           <div className="flex justify-between items-center">
+                      {/* <Button
+            variant="contained"
+            color="primary"
+            onClick={handleExportClick}
+            disabled={selectedImages.size === 0}
+            startIcon={<span>📁</span>}
+          >
+            Export to Folder
+          </Button> */}
             <Button
-              color="secondary"
-              variant="flat"
+              color="primary"
+              variant="solid"
               onPress={onBack}
               startContent={<span>⬅️</span>}
             >

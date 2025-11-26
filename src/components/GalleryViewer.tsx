@@ -6,26 +6,12 @@ import {
   CardContent,
   CardMedia,
   Typography,
-  Button,
   Checkbox,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Box,
   Chip,
-  Badge
+
 } from '@mui/material';
 import axios from 'axios';
-import JSZip from 'jszip';
-
-// Safe way to access electron APIs
-const getIpcRenderer = () => {
-  if (typeof window !== 'undefined' && window.require) {
-    return window.require('electron').ipcRenderer;
-  }
-  return null;
-};
 
 interface ImageData {
   id: number;
@@ -38,19 +24,18 @@ interface ImageData {
 
 export default function GalleryViewer({
   onSelectImage,
-  onStatsUpdate,
-  showControls = true,
   selectedImages,
-  setSelectedImages
+  setSelectedImages,
+  filter
 }: {
   onSelectImage: (image: ImageData) => void;
   onStatsUpdate?: () => void;
   showControls?: boolean;
   selectedImages: Set<number>;
   setSelectedImages: React.Dispatch<React.SetStateAction<Set<number>>>;
+  filter: string;
 }) {
   const [images, setImages] = useState<ImageData[]>([]);
-  const [filter, setFilter] = useState<string>('all');
 
 
   useEffect(() => {
@@ -80,90 +65,6 @@ export default function GalleryViewer({
     setSelectedImages(newSelected);
   };
 
-  const handleExport = async () => {
-    if (selectedImages.size === 0) return;
-
-    const ipcRenderer = getIpcRenderer();
-
-    try {
-      const folderPath = await ipcRenderer.invoke('select-folder');
-      if (!folderPath) return;
-
-      const files = [];
-      for (const imageId of Array.from(selectedImages)) {
-        const image = images.find(img => img.id === imageId);
-        if (image) {
-          files.push({
-            url: `http://localhost:3001${image.filepath}`,
-            name: image.filename
-          });
-        }
-      }
-
-      await ipcRenderer.invoke('save-files', files, folderPath);
-
-      // Clear selection after export
-      setSelectedImages(new Set());
-      alert('Images exported successfully!');
-    } catch (error) {
-      console.error('Export failed:', error);
-    }
-  };
-
-  const handleDownload = async () => {
-    if (selectedImages.size === 0) return;
-
-    try {
-      const zip = new JSZip();
-
-      for (const imageId of Array.from(selectedImages)) {
-        const image = images.find(img => img.id === imageId);
-        if (image) {
-          const response = await fetch(`http://localhost:3001${image.filepath}`);
-          const blob = await response.blob();
-          zip.file(image.filename, blob);
-        }
-      }
-
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = window.URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'exported_images.zip';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      // Clear selection after download
-      setSelectedImages(new Set());
-    } catch (error) {
-      console.error('Download failed:', error);
-    }
-  };
-
-  const handleDeleteSelected = async () => {
-    if (selectedImages.size === 0) return;
-
-    if (!confirm(`Are you sure you want to delete ${selectedImages.size} selected image(s)?`)) {
-      return;
-    }
-
-    try {
-      for (const imageId of Array.from(selectedImages)) {
-        await axios.delete(`http://localhost:3001/images/${imageId}`);
-      }
-
-      // Refresh the gallery
-      fetchImages();
-      setSelectedImages(new Set());
-      if (onStatsUpdate) onStatsUpdate();
-    } catch (error) {
-      console.error('Delete failed:', error);
-      alert('Failed to delete some images');
-    }
-  };
-
   const filteredImages = images.filter(img => {
     if (filter === 'all') return true;
     const filtered = img.mimetype.includes(filter);
@@ -172,87 +73,9 @@ export default function GalleryViewer({
     return filtered
   });
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const allIds = new Set(filteredImages.map(img => img.id));
-      setSelectedImages(allIds);
-    } else {
-      setSelectedImages(new Set());
-    }
-  };
-
-  const allSelected = filteredImages.length > 0 && selectedImages.size === filteredImages.length;
-  const someSelected = selectedImages.size > 0 && selectedImages.size < filteredImages.length;
-
   return (
-    <div className="w-full">
-      {showControls && (
-        <>
-          {/* Fixed header with controls */}
-          <div className="sticky top-0 bg-white z-10 pb-4 mb-4 border-b">
-            {/* <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-4">
-                <Select
-                  label="Filter by Type"
-                  placeholder="All Types"
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  className="w-48"
-                >
-                  <SelectItem key="all" value="all">All Types</SelectItem>
-                  <SelectItem key="jpeg" value="jpeg">JPEG Images</SelectItem>
-                  <SelectItem key="png" value="png">PNG Images</SelectItem>
-                  <SelectItem key="tiff" value="tiff">TIFF Images</SelectItem>
-                </Select>
-
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    isSelected={allSelected}
-                    isIndeterminate={someSelected}
-                    onValueChange={handleSelectAll}
-                    color="primary"
-                    size="lg"
-                  />
-                  <span className="text-sm font-medium">
-                    Select All ({selectedImages.size} selected)
-                  </span>
-                </div>
-              </div>
-            </div> */}
-
-            {/* <div className="flex gap-2">
-              <Button
-                color="primary"
-                variant="solid"
-                onPress={handleExport}
-                disabled={selectedImages.size === 0}
-                startContent={<span>📁</span>}
-              >
-                Export to Folder
-              </Button>
-              <Button
-                color="secondary"
-                variant="solid"
-                onPress={handleDownload}
-                disabled={selectedImages.size === 0}
-                startContent={<span>📦</span>}
-              >
-                Download ZIP
-              </Button>
-              <Button
-                color="danger"
-                variant="solid"
-                onPress={handleDeleteSelected}
-                disabled={selectedImages.size === 0}
-                startContent={<span>🗑️</span>}
-              >
-                Delete Selected
-              </Button>
-            </div> */}
-          </div>
-        </>
-      )}
-      <div className="grid grid-cols-4 gap-4">
+    <Box sx={{ width: '100%' }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2 }}>
         {filteredImages.map((image) => {
           const isSelected = selectedImages.has(image.id);
           return (
@@ -325,7 +148,7 @@ export default function GalleryViewer({
             </Card>
           );
         })}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
