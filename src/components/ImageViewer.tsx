@@ -53,49 +53,54 @@ export default function ImageViewer({ image, onBack }: ImageViewerProps) {
       fabricCanvasRef.current = canvas;
 
       // Load image
-      fabric.fabric.Image.fromURL(`http://localhost:3001${image.filepath}`, (img) => {
-        if (!canvas) return;
+      fabric.fabric.Image.fromURL(
+        `http://localhost:3001${image.filepath}`,
+        (img) => {
+          if (!canvas) return;
 
-        // Fit image to canvas without zooming
-        const canvasWidth = canvas.width || 800;
-        const canvasHeight = canvas.height || 600;
-        const imgAspect = img.width! / img.height!;
-        const canvasAspect = canvasWidth / canvasHeight;
+          const canvasWidth = canvas.width || 1600;
+          const canvasHeight = canvas.height || 1200;
+          const imgAspect = img.width! / img.height!;
+          const canvasAspect = canvasWidth / canvasHeight;
 
-        let scale;
-        if (imgAspect > canvasAspect) {
-          // Image is wider, fit to width
-          scale = canvasWidth / img.width!;
-        } else {
-          // Image is taller, fit to height
-          scale = canvasHeight / img.height!;
+          let scale;
+          if (imgAspect > canvasAspect) {
+            scale = canvasWidth / img.width!;
+          } else {
+            scale = canvasHeight / img.height!;
+          }
+
+          img.set({
+            crossOrigin: 'anonymous',
+          });
+
+          img.scale(scale);
+          canvas.add(img);
+          canvas.centerObject(img);
+
+          const rect = new fabric.fabric.Rect({
+            left: img.left || 0,
+            top: img.top || 0,
+            width: img.getScaledWidth(),
+            height: img.getScaledHeight(),
+            fill: 'rgba(255,0,0,0.3)',
+            stroke: 'red',
+            strokeWidth: 2,
+            selectable: true,
+            lockMovementX: false,
+            lockMovementY: false,
+            lockScalingX: false,
+            lockScalingY: false,
+          });
+
+          canvas.add(rect);
+          rect.bringToFront();
+          canvas.renderAll();
+        },
+        {
+          crossOrigin: "anonymous",
         }
-
-        img.scale(scale);
-        canvas.add(img);
-        canvas.centerObject(img);
-
-        // Create initial cropping rectangle covering the entire scaled image
-        const rect = new fabric.fabric.Rect({
-          left: img.left || 0,
-          top: img.top || 0,
-          width: img.getScaledWidth(),
-          height: img.getScaledHeight(),
-          fill: 'rgba(255,0,0,0.3)',
-          stroke: 'red',
-          strokeWidth: 2,
-          selectable: true,
-          lockMovementX: false,
-          lockMovementY: false,
-          lockScalingX: false,
-          lockScalingY: false,
-        });
-
-        // Ensure rectangle is always on top
-        canvas.add(rect);
-        rect.bringToFront();
-        canvas.renderAll();
-      });
+      );
 
       // Enable pan and zoom
       canvas.on('mouse:wheel', (opt: any) => {
@@ -253,7 +258,7 @@ export default function ImageViewer({ image, onBack }: ImageViewerProps) {
   if (!image) return null;
 
   return (
-    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

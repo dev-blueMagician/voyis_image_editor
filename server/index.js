@@ -46,7 +46,11 @@ const db = new sqlite3.Database('./database.db', (err) => {
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static('uploads', {
+  setHeaders: (res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+  }
+}));
 
 // Multer for file uploads
 const storage = multer.diskStorage({
