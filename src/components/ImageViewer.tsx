@@ -270,7 +270,19 @@ export default function ImageViewer({ image, onBack }: ImageViewerProps) {
             >
               Back to Gallery
             </Button>
-            <Typography variant="h5" sx={{ fontWeight: 'bold', textAlign: 'center', flex: 1 }}>
+            <Typography
+              sx={{
+                fontSize: 'larger',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                flex: 1,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minWidth: 0,
+                paddingX: 5               // IMPORTANT: allows flexbox to shrink it
+              }}
+            >
               {image.filename}
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
