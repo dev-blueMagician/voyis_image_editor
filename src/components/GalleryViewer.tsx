@@ -65,12 +65,13 @@ export default function GalleryViewer({
     setSelectedImages(newSelected);
   };
 
-  const filteredImages = images.filter(img => {
-    if (filter === 'all') return true;
-    const filtered = img.mimetype.includes(filter);
-    console.log('img.mimetype...', img.mimetype, filter, filtered)
+  const safeImages = Array.isArray(images) ? images : [];
+  const filteredImages = safeImages.filter(img => {
+      if (filter === 'all') return true;
+      const filtered = img.mimetype.includes(filter);
+      console.log('img.mimetype...', img.mimetype, filter, filtered)
 
-    return filtered
+      return filtered
   });
 
   return (

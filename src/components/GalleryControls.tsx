@@ -85,8 +85,9 @@ export default function GalleryControls({
     }
   };
 
-  const filteredImages = images.filter(img => {
-    if (filter === 'all') return true;
+  const safeImages = Array.isArray(images) ? images : [];
+  const filteredImages = safeImages.filter(img => {
+    if (filter === "all") return true;
     return img.mimetype.includes(filter);
   });
 

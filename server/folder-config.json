@@ -1,0 +1,75 @@
+{
+  "version": "1.0.0",
+  "description": "Folder configurations for batch image import",
+  "configs": [
+    {
+      "name": "upload",
+      "description": "",
+      "path": "D:\\workspace\\projects\\voyis_image_editor\\server\\uploads",
+      "fileTypes": [
+        "jpg",
+        "png"
+      ],
+      "recursive": true,
+      "maxDepth": 3,
+      "includePatterns": [
+        "*"
+      ],
+      "excludePatterns": [],
+      "enabled": true,
+      "autoImport": false,
+      "id": "config_1764252005009",
+      "lastImported": "2025-11-27T15:02:50.297Z"
+    },
+    {
+      "name": "avatar",
+      "description": "",
+      "path": "D:\\basic\\pic\\avatar",
+      "fileTypes": [
+        "jpg",
+        "png"
+      ],
+      "recursive": true,
+      "maxDepth": 3,
+      "includePatterns": [
+        "*"
+      ],
+      "excludePatterns": [],
+      "enabled": true,
+      "autoImport": false,
+      "id": "config_1764255650595",
+      "lastImported": "2025-11-27T15:02:50.482Z"
+    },
+    {
+      "name": "Downloads",
+      "description": "",
+      "path": "Downloads",
+      "fileTypes": [
+        "jpg",
+        "png"
+      ],
+      "recursive": true,
+      "maxDepth": 3,
+      "includePatterns": [
+        "*"
+      ],
+      "excludePatterns": [],
+      "enabled": true,
+      "autoImport": false,
+      "id": "config_1764255751854",
+      "lastImported": "2025-11-27T15:02:50.485Z"
+    }
+  ],
+  "globalSettings": {
+    "defaultMaxDepth": 5,
+    "defaultFileTypes": [
+      "jpg",
+      "jpeg",
+      "png"
+    ],
+    "skipDuplicates": true,
+    "extractExif": true,
+    "autoCreateThumbnails": true,
+    "importBatchSize": 10
+  }
+}
