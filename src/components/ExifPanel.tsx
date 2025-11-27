@@ -74,55 +74,60 @@ export default function ExifPanel({ selectedImageId }: ExifPanelProps) {
   };
 
   return (
-    <Card sx={{ width: '100%' }}>
-      <CardContent>
-        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-          🏷️ Image Properties
+    <Card sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 1, '&:last-child': { pb: 1 } }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '1rem' }}>
+          🏷️ Properties
         </Typography>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1, minHeight: 0 }}>
           <Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, fontSize: '0.75rem' }}>
               {selectedImageId
                 ? ''
-                : 'Select an image from the gallery'
+                : 'Select an image'
               }
             </Typography>
             {loading && (
               <Chip
                 color="primary"
                 size="small"
-                label="Loading Properties..."
-                sx={{ mb: 1 }}
+                label="Loading..."
+                sx={{ mb: 0.5, height: 20, fontSize: '0.7rem' }}
               />
             )}
           </Box>
 
           {exifData && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, minHeight: 0 }}>
               <Button
                 variant="contained"
                 color="success"
                 onClick={handleInsertExif}
                 size="small"
+                sx={{ minHeight: 24, fontSize: '0.9rem' }}
               >
-                Update Properties
+                Update
               </Button>
-              <Box sx={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 0.5, minHeight: 0  }}>
                 {Object.entries(exifData).map(([key, value]) => (
-                  <Box key={key} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Box key={key} sx={{ display: 'flex', gap: 1, alignItems: 'center', width: '48%' }}>
                     <Chip
                       size="small"
                       variant="filled"
                       color="primary"
                       label={key}
-                      sx={{ minWidth: 'fit-content' }}
+                      sx={{ minWidth: 'fit-content', height: 24, fontSize: '0.75rem', '& .MuiChip-label': { px: 0.5 } }}
                     />
                     <TextField
                       size="small"
                       value={String(value)}
                       onChange={(e: any) => handleExifChange(key, e.target.value)}
-                      sx={{ flex: 1 }}
+                      sx={{
+                        flex: 1,
+                        '& .MuiInputBase-root': { height: 28, fontSize: '0.8rem' },
+                        '& .MuiInputBase-input': { padding: '2px 8px' }
+                      }}
                     />
                   </Box>
                 ))}

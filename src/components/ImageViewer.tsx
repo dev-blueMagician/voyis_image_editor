@@ -297,20 +297,21 @@ export default function ImageViewer({ image, onBack }: ImageViewerProps) {
               </Box>
             </Box>
           ) : (
-            <Box
-              component="canvas"
-              ref={canvasRef}
-              width={1600}
-              height={1200}
-              sx={{ width: '100%', height: '100%', borderRadius: 1 }}
-            />
+            <Box sx={{ position: 'relative', width: '100%' }}>
+              <canvas
+                ref={canvasRef}
+                width={1000}
+                height={500}
+                style={{ width: "100%", height: "100%" }}
+              />
+            </Box>
           )}
         </CardContent>
       </Card>
 
       <Card sx={{ mt: 2 }}>
         <CardContent>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
             <Chip
               color="primary"
               variant="filled"

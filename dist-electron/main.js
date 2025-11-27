@@ -1,20 +1,24 @@
 "use strict";
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
-const path = require("path");
-const fs = require("fs");
-const sharp = require("sharp");
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const electron_1 = require("electron");
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+const sharp_1 = __importDefault(require("sharp"));
 let mainWindow = null;
 function createWindow() {
-    mainWindow = new BrowserWindow({
+    mainWindow = new electron_1.BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: {
-            preload: path.join(__dirname, "preload.js"),
+            preload: path_1.default.join(__dirname, "preload.js"),
             nodeIntegration: false,
             contextIsolation: true,
         },
     });
-    const isDev = !app.isPackaged;
+    const isDev = !electron_1.app.isPackaged;
     const url = isDev
         ? "http://localhost:3000"
         : "http://localhost:3000"; // Next.js server started by Electron
@@ -26,15 +30,15 @@ function createWindow() {
 /* -------------------------------
      IPC EVENTS (Typed)
 -------------------------------- */
-ipcMain.on("upload-images", (event, files, folderPath) => {
+electron_1.ipcMain.on("upload-images", (event, files, folderPath) => {
     console.log("Upload request", files, folderPath);
 });
-ipcMain.on("convert-images", (event, files, folderPath, format) => {
+electron_1.ipcMain.on("convert-images", (event, files, folderPath, format) => {
     console.log("Convert request", files, folderPath, format);
 });
 // Handle folder selection
-ipcMain.handle('select-folder', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
+electron_1.ipcMain.handle('select-folder', async () => {
+    const result = await electron_1.dialog.showOpenDialog(mainWindow, {
         properties: ['openDirectory']
     });
     if (result.canceled) {
@@ -43,7 +47,7 @@ ipcMain.handle('select-folder', async () => {
     return result.filePaths[0];
 });
 // Handle image export with format conversion
-ipcMain.handle('export-images', async (event, files, folderPath, format) => {
+electron_1.ipcMain.handle('export-images', async (event, files, folderPath, format) => {
     try {
         for (const file of files) {
             const response = await fetch(`http://localhost:3001${file.url}`);
@@ -51,22 +55,22 @@ ipcMain.handle('export-images', async (event, files, folderPath, format) => {
             const buffer = Buffer.from(arrayBuffer);
             // Convert image format using Sharp
             let outputBuffer;
-            const outputPath = path.join(folderPath, `${file.name.split('.')[0]}.${format}`);
+            const outputPath = path_1.default.join(folderPath, `${file.name.split('.')[0]}.${format}`);
             switch (format) {
                 case 'jpeg':
                 case 'jpg':
-                    outputBuffer = await sharp(buffer).jpeg().toBuffer();
+                    outputBuffer = await (0, sharp_1.default)(buffer).jpeg().toBuffer();
                     break;
                 case 'png':
-                    outputBuffer = await sharp(buffer).png().toBuffer();
+                    outputBuffer = await (0, sharp_1.default)(buffer).png().toBuffer();
                     break;
                 case 'tiff':
-                    outputBuffer = await sharp(buffer).tiff().toBuffer();
+                    outputBuffer = await (0, sharp_1.default)(buffer).tiff().toBuffer();
                     break;
                 default:
                     outputBuffer = buffer;
             }
-            fs.writeFileSync(outputPath, outputBuffer);
+            fs_1.default.writeFileSync(outputPath, outputBuffer);
         }
         return { success: true };
     }
@@ -78,16 +82,16 @@ ipcMain.handle('export-images', async (event, files, folderPath, format) => {
 /* -------------------------------
      APP LIFE CYCLE
 -------------------------------- */
-app.whenReady().then(() => {
+electron_1.app.whenReady().then(() => {
     createWindow();
-    app.on("activate", () => {
+    electron_1.app.on("activate", () => {
         if (mainWindow === null) {
             createWindow();
         }
     });
 });
-app.on("window-all-closed", () => {
+electron_1.app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
-        app.quit();
+        electron_1.app.quit();
     }
 });
