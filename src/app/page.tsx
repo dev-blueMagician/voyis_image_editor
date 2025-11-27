@@ -85,6 +85,7 @@ export default function Home() {
 
   const handleSelectImage = (image: ImageData) => {
     setSelectedImage(image);
+    setCurrentView('viewer');
   };
 
   const handleBackToGallery = () => {
