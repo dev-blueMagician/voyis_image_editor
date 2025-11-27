@@ -1,7 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Card, CardBody, Progress, Chip, Spacer } from '@nextui-org/react';
+import {
+  Button,
+  LinearProgress,
+  Chip,
+  Box,
+  Typography
+} from '@mui/material';
 import axios from 'axios';
 
 export default function ControlPanel() {
@@ -35,45 +41,49 @@ export default function ControlPanel() {
   };
 
   return (
-    <div className="w-full">
-      <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+    <Box sx={{ width: '100%' }}>
+      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
         ⚙️ Control Panel
-      </h3>
+      </Typography>
 
-      <div className="space-y-4">
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Button
+          variant="contained"
           color="primary"
-          onPress={handleSync}
+          onClick={handleSync}
           disabled={syncing}
-          size="lg"
-          startContent={<span>🔄</span>}
-          className="w-full"
+          size="large"
+          startIcon={<span>🔄</span>}
+          sx={{ width: '100%' }}
         >
           {syncing ? 'Syncing...' : 'Sync with Server'}
         </Button>
 
         {syncing && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Synchronizing...</span>
-              <span>{progress}%</span>
-            </div>
-            <Progress
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2">Synchronizing...</Typography>
+              <Typography variant="body2">{progress}%</Typography>
+            </Box>
+            <LinearProgress
+              variant="determinate"
               value={progress}
               color="primary"
-              size="md"
-              className="w-full"
+              sx={{ width: '100%' }}
             />
-          </div>
+          </Box>
         )}
 
         {lastSync && (
-          <Chip color="success" variant="flat" size="sm">
-            Last sync: {lastSync}
-          </Chip>
+          <Chip
+            color="success"
+            variant="filled"
+            size="small"
+            label={`Last sync: ${lastSync}`}
+          />
         )}
-        
-      </div>
-    </div>
+
+      </Box>
+    </Box>
   );
 }

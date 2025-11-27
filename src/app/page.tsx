@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Paper, Typography, Box } from '@mui/material';
+import { Paper, Typography, Box, Button, ButtonGroup } from '@mui/material';
 import axios from 'axios';
 import UploadPanel from '../components/UploadPanel';
 import GalleryViewer from '../components/GalleryViewer';
 import ImageViewer from '../components/ImageViewer';
 import ControlPanel from '../components/ControlPanel';
 import LogPanel from '../components/LogPanel';
+import FolderConfigPanel from '../components/FolderConfigPanel';
 import ExifPanel from '../components/ExifPanel';
 import GalleryControls from '../components/GalleryControls';
 
@@ -26,6 +27,8 @@ export default function Home() {
   const [refreshStats, setRefreshStats] = useState(0);
   const [images, setImages] = useState<ImageData[]>([]);
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
+  const [filter, setFilter] = useState<string>('all');
+  const [currentView, setCurrentView] = useState<'gallery' | 'viewer' | 'folders'>('gallery');
 
   // Fetch images on mount and when refreshGallery changes
   useEffect(() => {
@@ -82,6 +85,7 @@ export default function Home() {
 
   const handleSelectImage = (image: ImageData) => {
     setSelectedImage(image);
+    setCurrentView('viewer');
   };
 
   const handleBackToGallery = () => {
@@ -92,10 +96,31 @@ export default function Home() {
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <Paper elevation={1} sx={{ borderRadius: 0, borderBottom: 1 }}>
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
             Voyis Image Editor
           </Typography>
+          <ButtonGroup variant="outlined" size="small">
+            <Button
+              variant={currentView === 'gallery' ? 'contained' : 'outlined'}
+              onClick={() => setCurrentView('gallery')}
+            >
+              Gallery
+            </Button>
+            <Button
+              variant={currentView === 'viewer' ? 'contained' : 'outlined'}
+              onClick={() => setCurrentView('viewer')}
+              disabled={!selectedImage}
+            >
+              Single Viewer
+            </Button>
+            <Button
+              variant={currentView === 'folders' ? 'contained' : 'outlined'}
+              onClick={() => setCurrentView('folders')}
+            >
+              Folder Config
+            </Button>
+          </ButtonGroup>
         </Box>
       </Paper>
 
@@ -119,9 +144,14 @@ export default function Home() {
         <Box sx={{ flex: 1, overflow: 'hidden' }}>
           <Paper elevation={3} sx={{ height: '100%' }}>
             <Box sx={{ p: 0, height: '100%' }}>
-              {selectedImage ? (
+              {currentView === 'viewer' && selectedImage ? (
                 <ImageViewer image={selectedImage} onBack={handleBackToGallery} />
+              ) : currentView === 'folders' ? (
+                <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
+                  <FolderConfigPanel />
+                </Box>
               ) : (
+                // Gallery view (default)
                 <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                   <Box sx={{ flexShrink: 0 }}>
                     <GalleryControls
@@ -129,6 +159,8 @@ export default function Home() {
                       onSelectAll={handleSelectAll}
                       onDeleteSelected={handleDeleteSelected}
                       images={images}
+                      filter={filter}
+                      onFilterChange={setFilter}
                     />
                   </Box>
 
@@ -140,6 +172,7 @@ export default function Home() {
                       showControls={false}
                       selectedImages={selectedImages}
                       setSelectedImages={setSelectedImages}
+                      filter={filter}
                     />
                   </Box>
                 </Box>
@@ -150,7 +183,7 @@ export default function Home() {
       </div>
 
       {/* Bottom Panel - Split into two equal parts */}
-      <Box sx={{ display: 'flex', borderTop: 1, boxShadow: 1, height: '200px' }}>
+      <Box sx={{ display: 'flex', borderTop: 1, boxShadow: 1 }}>
         {/* Left: System Logs */}
         <Box sx={{ flex: 1, borderRight: 1 }}>
           <Paper elevation={0} sx={{ borderRadius: 0, height: '100%' }}>

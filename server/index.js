@@ -5,6 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const exifr = require('exifr');
+const FolderConfigManager = require('./folderConfig');
 
 require('dotenv').config();
 
@@ -43,10 +44,17 @@ const db = new sqlite3.Database('./database.db', (err) => {
   }
 });
 
+// Initialize folder config manager
+const folderConfigManager = new FolderConfigManager();
+
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static('uploads', {
+  setHeaders: (res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+  }
+}));
 
 // Multer for file uploads
 const storage = multer.diskStorage({
@@ -185,6 +193,26 @@ app.get('/images/:id', (req, res) => {
   });
 });
 
+app.patch('/images/:id', (req, res) => {
+  const fields = req.body;
+  const id = req.params.id;
+
+  const columns = Object.keys(fields);
+  const values = Object.values(fields);
+
+  const setClause = columns.map(col => `${col} = ?`).join(', ');
+
+  db.run(
+    `UPDATE images SET ${setClause} WHERE id = ?`,
+    [...values, id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) return res.status(404).json({ error: 'Image not found' });
+      res.json({ message: 'Updated', updatedId: id });
+    }
+  );
+});
+
 app.delete('/images/:id', (req, res) => {
   db.get('SELECT * FROM images WHERE id = ?', [req.params.id], (err, row) => {
     if (err) {
@@ -212,6 +240,157 @@ app.delete('/images/:id', (req, res) => {
       });
     }
   });
+});
+
+
+// Folder Configuration API Endpoints
+
+// Get all folder configs
+app.get('/folder-configs', (req, res) => {
+  const configs = folderConfigManager.getConfigs();
+  res.json({
+    configs,
+    globalSettings: folderConfigManager.config.globalSettings
+  });
+});
+
+// Get enabled folder configs
+app.get('/folder-configs/enabled', (req, res) => {
+  const configs = folderConfigManager.getEnabledConfigs();
+  res.json({ configs });
+});
+
+// Add new folder config
+app.post('/folder-configs', (req, res) => {
+  try {
+    const config = req.body;
+    const newConfig = folderConfigManager.addConfig(config);
+    res.status(201).json({ config: newConfig });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Update folder config
+app.put('/folder-configs/:id', (req, res) => {
+  try {
+    const updates = req.body;
+    const updatedConfig = folderConfigManager.updateConfig(req.params.id, updates);
+    if (updatedConfig) {
+      res.json({ config: updatedConfig });
+    } else {
+      res.status(404).json({ error: 'Configuration not found' });
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete folder config
+app.delete('/folder-configs/:id', (req, res) => {
+  try {
+    const deletedConfig = folderConfigManager.deleteConfig(req.params.id);
+    if (deletedConfig) {
+      res.json({ message: 'Configuration deleted', config: deletedConfig });
+    } else {
+      res.status(404).json({ error: 'Configuration not found' });
+    }
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Batch import from folder config
+app.post('/folder-configs/:id/import', async (req, res) => {
+  try {
+    const config = folderConfigManager.getConfigById(req.params.id);
+    if (!config) {
+      return res.status(404).json({ error: 'Configuration not found' });
+    }
+
+    if (!config.enabled) {
+      return res.status(400).json({ error: 'Configuration is disabled' });
+    }
+
+    console.log(`📂 Starting batch import from config: ${config.name}`);
+
+    // Check if folder exists
+    if (!fs.existsSync(config.path)) {
+      return res.status(400).json({ error: `Folder does not exist: ${config.path}` });
+    }
+
+    // Perform the import
+    const results = await folderConfigManager.scanFolder(config, db);
+
+    // Update stats
+    db.run(
+      `UPDATE stats SET total_files = total_files + ?, total_size = total_size + ? WHERE id = 1`,
+      [results.processed, results.files.reduce((sum, file) => sum + file.size, 0)]
+    );
+
+    res.json({
+      message: 'Batch import completed',
+      config: config.name,
+      results
+    });
+
+  } catch (error) {
+    console.error('Batch import error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Batch import from all enabled configs
+app.post('/folder-configs/import-all', async (req, res) => {
+  try {
+    const enabledConfigs = folderConfigManager.getEnabledConfigs();
+    const results = [];
+
+    console.log(`📂 Starting batch import from ${enabledConfigs.length} enabled configs`);
+
+    for (const config of enabledConfigs) {
+      try {
+        console.log(`📁 Processing config: ${config.name}`);
+        const configResults = await folderConfigManager.scanFolder(config, db);
+        results.push({
+          config: config.name,
+          results: configResults
+        });
+      } catch (error) {
+        console.error(`❌ Error importing from ${config.name}:`, error);
+        results.push({
+          config: config.name,
+          error: error.message
+        });
+      }
+    }
+
+    // Update total stats
+    const totalProcessed = results.reduce((sum, result) => {
+      return sum + (result.results?.processed || 0);
+    }, 0);
+
+    const totalSize = results.reduce((sum, result) => {
+      return sum + (result.results?.files?.reduce((fileSum, file) => fileSum + file.size, 0) || 0);
+    }, 0);
+
+    if (totalProcessed > 0) {
+      db.run(
+        `UPDATE stats SET total_files = total_files + ?, total_size = total_size + ? WHERE id = 1`,
+        [totalProcessed, totalSize]
+      );
+    }
+
+    res.json({
+      message: 'Batch import from all enabled configs completed',
+      totalConfigs: enabledConfigs.length,
+      results
+    });
+
+  } catch (error) {
+    console.error('Batch import all error:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Sync endpoint (mock)

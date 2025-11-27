@@ -1,7 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Button, Card, CardBody, Chip, Spacer } from '@nextui-org/react';
+import {
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Box,
+  Typography,
+  CircularProgress
+} from '@mui/material';
 
 interface ImageData {
   id: number;
@@ -45,49 +53,54 @@ export default function ImageViewer({ image, onBack }: ImageViewerProps) {
       fabricCanvasRef.current = canvas;
 
       // Load image
-      fabric.fabric.Image.fromURL(`http://localhost:3001${image.filepath}`, (img) => {
-        if (!canvas) return;
+      fabric.fabric.Image.fromURL(
+        `http://localhost:3001${image.filepath}`,
+        (img) => {
+          if (!canvas) return;
 
-        // Fit image to canvas without zooming
-        const canvasWidth = canvas.width || 800;
-        const canvasHeight = canvas.height || 600;
-        const imgAspect = img.width! / img.height!;
-        const canvasAspect = canvasWidth / canvasHeight;
+          const canvasWidth = canvas.width || 1600;
+          const canvasHeight = canvas.height || 1200;
+          const imgAspect = img.width! / img.height!;
+          const canvasAspect = canvasWidth / canvasHeight;
 
-        let scale;
-        if (imgAspect > canvasAspect) {
-          // Image is wider, fit to width
-          scale = canvasWidth / img.width!;
-        } else {
-          // Image is taller, fit to height
-          scale = canvasHeight / img.height!;
+          let scale;
+          if (imgAspect > canvasAspect) {
+            scale = canvasWidth / img.width!;
+          } else {
+            scale = canvasHeight / img.height!;
+          }
+
+          img.set({
+            crossOrigin: 'anonymous',
+          });
+
+          img.scale(scale);
+          canvas.add(img);
+          canvas.centerObject(img);
+
+          const rect = new fabric.fabric.Rect({
+            left: img.left || 0,
+            top: img.top || 0,
+            width: img.getScaledWidth(),
+            height: img.getScaledHeight(),
+            fill: 'rgba(255,0,0,0.3)',
+            stroke: 'red',
+            strokeWidth: 2,
+            selectable: true,
+            lockMovementX: false,
+            lockMovementY: false,
+            lockScalingX: false,
+            lockScalingY: false,
+          });
+
+          canvas.add(rect);
+          rect.bringToFront();
+          canvas.renderAll();
+        },
+        {
+          crossOrigin: "anonymous",
         }
-
-        img.scale(scale);
-        canvas.add(img);
-        canvas.centerObject(img);
-
-        // Create initial cropping rectangle covering the entire scaled image
-        const rect = new fabric.fabric.Rect({
-          left: img.left || 0,
-          top: img.top || 0,
-          width: img.getScaledWidth(),
-          height: img.getScaledHeight(),
-          fill: 'rgba(255,0,0,0.3)',
-          stroke: 'red',
-          strokeWidth: 2,
-          selectable: true,
-          lockMovementX: false,
-          lockMovementY: false,
-          lockScalingX: false,
-          lockScalingY: false,
-        });
-
-        // Ensure rectangle is always on top
-        canvas.add(rect);
-        rect.bringToFront();
-        canvas.renderAll();
-      });
+      );
 
       // Enable pan and zoom
       canvas.on('mouse:wheel', (opt: any) => {
@@ -245,62 +258,93 @@ export default function ImageViewer({ image, onBack }: ImageViewerProps) {
   if (!image) return null;
 
   return (
-    <div className="w-full h-full flex flex-col p-4">
-      <Card className="mb-4">
-        <CardBody>
-          <div className="flex justify-between items-center">
+    <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Card sx={{ mb: 2 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Button
-              color="secondary"
-              variant="flat"
-              onPress={onBack}
-              startContent={<span>⬅️</span>}
+              variant="contained"
+              color="primary"
+              onClick={onBack}
+              startIcon={<span>⬅️</span>}
             >
               Back to Gallery
             </Button>
-            <h3 className="text-xl font-bold text-center flex-1">{image.filename}</h3>
-            <div className="flex gap-2">
+            <Typography
+              sx={{
+                fontSize: 'larger',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                flex: 1,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                minWidth: 0,
+                paddingX: 5               // IMPORTANT: allows flexbox to shrink it
+              }}
+            >
+              {image.filename}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
+                variant="contained"
                 color="primary"
-                onPress={handleCrop}
-                startContent={<span>✂️</span>}
+                onClick={handleCrop}
+                startIcon={<span>✂️</span>}
               >
                 Crop Selection
               </Button>
-            </div>
-          </div>
-        </CardBody>
+            </Box>
+          </Box>
+        </CardContent>
       </Card>
 
-      <Card className="flex-1">
-        <CardBody className="p-0 h-full">
+      <Card sx={{ flex: 1 }}>
+        <CardContent sx={{ p: 0, height: '100%' }}>
           {!fabricLoaded ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-lg">Loading image editor...</p>
-              </div>
-            </div>
+            <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <CircularProgress size={48} sx={{ mb: 2 }} />
+                <Typography variant="h6">Loading image editor...</Typography>
+              </Box>
+            </Box>
           ) : (
-            <canvas ref={canvasRef} width={800} height={600} className="w-full h-full rounded-lg" />
+            <Box sx={{ position: 'relative', width: '100%' }}>
+              <canvas
+                ref={canvasRef}
+                width={1000}
+                height={500}
+                style={{ width: "100%", height: "100%" }}
+              />
+            </Box>
           )}
-        </CardBody>
+        </CardContent>
       </Card>
 
-      <Card className="mt-4">
-        <CardBody>
-          <div className="grid grid-cols-3 gap-4">
-            <Chip color="primary" variant="flat" className="justify-center">
-              📏 {(image.size / 1024 / 1024).toFixed(2)} MB
-            </Chip>
-            <Chip color="secondary" variant="flat" className="justify-center">
-              🏷️ {image.mimetype.split('/')[1].toUpperCase()}
-            </Chip>
-            <Chip color="default" variant="flat" className="justify-center">
-              📅 {new Date(image.uploaded_at).toLocaleDateString()}
-            </Chip>
-          </div>
-        </CardBody>
+      <Card sx={{ mt: 2 }}>
+        <CardContent>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+            <Chip
+              color="primary"
+              variant="filled"
+              label={`📏 ${(image.size / 1024 / 1024).toFixed(2)} MB`}
+              sx={{ justifyContent: 'center' }}
+            />
+            <Chip
+              color="secondary"
+              variant="filled"
+              label={`🏷️ ${image.mimetype.split('/')[1].toUpperCase()}`}
+              sx={{ justifyContent: 'center' }}
+            />
+            <Chip
+              color="default"
+              variant="filled"
+              label={`📅 ${new Date(image.uploaded_at).toLocaleDateString()}`}
+              sx={{ justifyContent: 'center' }}
+            />
+          </Box>
+        </CardContent>
       </Card>
-    </div>
+    </Box>
   );
 }

@@ -11,8 +11,6 @@ import {
   Box,
   Typography
 } from '@mui/material';
-import axios from 'axios';
-import JSZip from 'jszip';
 import ExportDialog from './ExportDialog';
 
 interface ImageData {
@@ -29,12 +27,14 @@ interface GalleryControlsProps {
   onSelectAll: (checked: boolean) => void;
   onDeleteSelected: () => void;
   images: ImageData[];
+  filter: string;
+  onFilterChange: (filter: string) => void;
 }
 
-// Safe way to access electron APIs
-const getIpcRenderer = () => {
-  if (typeof window !== 'undefined' && window.require) {
-    return window.require('electron').ipcRenderer;
+// Safe way to access electron APIs through preload script
+const getElectronAPI = () => {
+  if (typeof window !== 'undefined' && (window as any).electronAPI) {
+    return (window as any).electronAPI;
   }
   return null;
 };
@@ -43,19 +43,23 @@ export default function GalleryControls({
   selectedImages,
   onSelectAll,
   onDeleteSelected,
-  images
+  images,
+  filter,
+  onFilterChange
 }: GalleryControlsProps) {
-  const [filter, setFilter] = useState<string>('all');
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-
-  console.log('selectedImages', selectedImages.size)
 
   const handleExportClick = () => {
     setIsExportDialogOpen(true);
   };
 
   const handleExportWithFormat = async (format: string, folderPath: string) => {
-    const ipcRenderer = getIpcRenderer();
+    const electronAPI = getElectronAPI();
+
+    if (!electronAPI) {
+      alert('Electron API not available. Please restart the application.');
+      return;
+    }
 
     try {
       const files = [];
@@ -70,7 +74,7 @@ export default function GalleryControls({
         }
       }
 
-      await ipcRenderer.invoke('export-images', files, folderPath, format);
+      await electronAPI.exportImages(files, folderPath, format);
 
       // Clear selection after export
       onSelectAll(false);
@@ -81,41 +85,9 @@ export default function GalleryControls({
     }
   };
 
-  const handleDownload = async () => {
-    if (selectedImages.size === 0) return;
-
-    try {
-      const zip = new JSZip();
-
-      for (const imageId of Array.from(selectedImages)) {
-        const image = images.find(img => img.id === imageId);
-        if (image) {
-          const response = await fetch(`http://localhost:3001${image.filepath}`);
-          const blob = await response.blob();
-          zip.file(image.filename, blob);
-        }
-      }
-
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = window.URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'exported_images.zip';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      // Clear selection after download
-      onSelectAll(false);
-    } catch (error) {
-      console.error('Download failed:', error);
-      alert('Download failed. Please try again.');
-    }
-  };
-
-  const filteredImages = images.filter(img => {
-    if (filter === 'all') return true;
+  const safeImages = Array.isArray(images) ? images : [];
+  const filteredImages = safeImages.filter(img => {
+    if (filter === "all") return true;
     return img.mimetype.includes(filter);
   });
 
@@ -126,49 +98,39 @@ export default function GalleryControls({
     <>
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
         {/* Left: Select All */}
-        <div className="flex items-center gap-2">
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Checkbox
-            isSelected={allSelected}
-            isIndeterminate={someSelected}
-            onValueChange={onSelectAll}
+            checked={allSelected}
+            indeterminate={someSelected}
+            onChange={(e) => onSelectAll(e.target.checked)}
             color="primary"
-            size="lg"
           />
-          <span className="text-sm font-medium">
+          <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
             Select All ({selectedImages.size} selected)
-          </span>
-        </div>
+          </Typography>
+        </Box>
 
         {/* Center: Action Buttons */}
-        <div className="flex gap-2">
+        <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
+            variant="contained"
             color="primary"
-            variant="solid"
-            onPress={handleExportClick}
+            onClick={handleExportClick}
             disabled={selectedImages.size === 0}
-            startContent={<span>📁</span>}
+            startIcon={<span>📁</span>}
           >
             Export to Folder
           </Button>
           <Button
-            color="secondary"
-            variant="solid"
-            onPress={handleDownload}
+            variant="contained"
+            color="error"
+            onClick={onDeleteSelected}
             disabled={selectedImages.size === 0}
-            startContent={<span>📦</span>}
-          >
-            Download ZIP
-          </Button>
-          <Button
-            color="danger"
-            variant="solid"
-            onPress={onDeleteSelected}
-            disabled={selectedImages.size === 0}
-            startContent={<span>🗑️</span>}
+            startIcon={<span>🗑️</span>}
           >
             Delete Selected
           </Button>
-        </div>
+        </Box>
 
         {/* Right: Filter */}
         <FormControl sx={{ minWidth: 192 }}>
@@ -176,7 +138,7 @@ export default function GalleryControls({
           <Select
             value={filter}
             label="Filter by Type"
-            onChange={(e: any) => setFilter(e.target.value)}
+            onChange={(e: any) => onFilterChange(e.target.value)}
           >
             <MenuItem value="all">All Types</MenuItem>
             <MenuItem value="jpeg">JPEG Images</MenuItem>

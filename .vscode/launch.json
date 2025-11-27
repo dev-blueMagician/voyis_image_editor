@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Next.js + Electron",
+      "configurations": ["Next.js Dev", "Electron Main"]
+    }
+  ],
+  "configurations": [
+    {
+      "name": "Next.js Dev",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Electron Main",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd",
+      "runtimeArgs": ["."],
+      "cwd": "${workspaceFolder}",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "timeout": 20000
+    }
+  ]
+}

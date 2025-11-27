@@ -1,7 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardBody, Chip, ScrollShadow } from '@nextui-org/react';
+import {
+  Chip,
+  Box,
+  Typography
+} from '@mui/material';
 
 interface LogEntry {
   id: number;
@@ -38,34 +42,35 @@ export default function LogPanel() {
   }, []);
 
   return (
-    <div className="w-full">
-      <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+    <Box sx={{ width: '100%' }}>
+      <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
         📋 System Logs
-      </h3>
-      <ScrollShadow className="h-32 w-full">
-        <div className="space-y-2">
+      </Typography>
+      <Box sx={{ height: 128, width: '100%', overflowY: 'auto' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {logs.map((log) => (
-            <div key={log.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50">
+            <Box key={log.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, borderRadius: 1, bgcolor: 'grey.50' }}>
               <Chip
                 color={
-                  log.type === 'error' ? 'danger' :
+                  log.type === 'error' ? 'error' :
                   log.type === 'success' ? 'success' :
                   'primary'
                 }
-                variant="flat"
-                size="sm"
-                className="text-xs"
-              >
-                {log.type.toUpperCase()}
-              </Chip>
-              <span className="text-xs text-gray-600 font-mono">
+                variant="filled"
+                size="small"
+                label={log.type.toUpperCase()}
+                sx={{ fontSize: '0.75rem' }}
+              />
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>
                 {new Date(log.timestamp).toLocaleTimeString()}
-              </span>
-              <span className="text-xs flex-1">{log.message}</span>
-            </div>
+              </Typography>
+              <Typography variant="caption" sx={{ flex: 1 }}>
+                {log.message}
+              </Typography>
+            </Box>
           ))}
-        </div>
-      </ScrollShadow>
-    </div>
+        </Box>
+      </Box>
+    </Box>
   );
 }

@@ -1,7 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardBody, Button, Input, Chip, image } from '@nextui-org/react';
+import {
+  Card,
+  CardContent,
+  Button,
+  TextField,
+  Chip,
+  Box,
+  Typography
+} from '@mui/material';
 import axios from 'axios';
 
 interface ExifData {
@@ -66,57 +74,68 @@ export default function ExifPanel({ selectedImageId }: ExifPanelProps) {
   };
 
   return (
-    <Card className="w-full">
-      <CardBody>
-        <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-          🏷️ Image Properties
-        </h3>
+    <Card sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 1, '&:last-child': { pb: 1 } }}>
+        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1, display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '1rem' }}>
+          🏷️ Properties
+        </Typography>
 
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm text-gray-600 mb-2">
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1, minHeight: 0 }}>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, fontSize: '0.75rem' }}>
               {selectedImageId
                 ? ''
-                : 'Select an image from the gallery'
+                : 'Select an image'
               }
-            </p>
+            </Typography>
             {loading && (
-              <Chip color="primary" size="sm" className="mb-2">
-                Loading Properties...
-              </Chip>
+              <Chip
+                color="primary"
+                size="small"
+                label="Loading..."
+                sx={{ mb: 0.5, height: 20, fontSize: '0.7rem' }}
+              />
             )}
-          </div>
+          </Box>
 
           {exifData && (
-            <div className="space-y-1">
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1, minHeight: 0 }}>
               <Button
+                variant="contained"
                 color="success"
-                onPress={handleInsertExif}
-                size="sm"
+                onClick={handleInsertExif}
+                size="small"
+                sx={{ minHeight: 24, fontSize: '0.9rem' }}
               >
-                Update Properties
+                Update
               </Button>
-              <div className="max-h-60 overflow-y-auto space-y-2">
+              <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 0.5, minHeight: 0  }}>
                 {Object.entries(exifData).map(([key, value]) => (
-                  <div key={key} className="flex gap-2 items-center">
-                    <Chip size="sm" variant="flat" color="primary" className="min-w-fit">
-                      {key}
-                    </Chip>
-                    <Input
-                      size="sm"
-                      value={String(value)}
-                      onChange={(e) => handleExifChange(key, e.target.value)}
-                      className="flex-1"
+                  <Box key={key} sx={{ display: 'flex', gap: 1, alignItems: 'center', width: '48%' }}>
+                    <Chip
+                      size="small"
+                      variant="filled"
+                      color="primary"
+                      label={key}
+                      sx={{ minWidth: 'fit-content', height: 24, fontSize: '0.75rem', '& .MuiChip-label': { px: 0.5 } }}
                     />
-                  </div>
+                    <TextField
+                      size="small"
+                      value={String(value)}
+                      onChange={(e: any) => handleExifChange(key, e.target.value)}
+                      sx={{
+                        flex: 1,
+                        '& .MuiInputBase-root': { height: 28, fontSize: '0.8rem' },
+                        '& .MuiInputBase-input': { padding: '2px 8px' }
+                      }}
+                    />
+                  </Box>
                 ))}
-              </div>
-
-
-            </div>
+              </Box>
+            </Box>
           )}
-        </div>
-      </CardBody>
+        </Box>
+      </CardContent>
     </Card>
   );
 }

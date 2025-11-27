@@ -1,0 +1,56 @@
+{
+  "version": "1.0.0",
+  "description": "Folder configurations for batch image import",
+  "configs": [
+    {
+      "id": "project-photos",
+      "name": "Project Photos",
+      "description": "Import photos from project directory",
+      "path": "./sample_images",
+      "fileTypes": ["jpg", "jpeg", "png", "tiff", "tif"],
+      "recursive": true,
+      "maxDepth": 3,
+      "includePatterns": ["*"],
+      "excludePatterns": ["*.tmp", "*/temp/*"],
+      "enabled": true,
+      "autoImport": false,
+      "lastImported": null
+    },
+    {
+      "id": "camera-uploads",
+      "name": "Camera Uploads",
+      "description": "Import from camera SD card",
+      "path": "/media/camera/DCIM",
+      "fileTypes": ["jpg", "png", "raw", "cr2", "nef"],
+      "recursive": true,
+      "maxDepth": 2,
+      "includePatterns": ["*"],
+      "excludePatterns": [],
+      "enabled": false,
+      "autoImport": false,
+      "lastImported": null
+    },
+    {
+      "id": "desktop-screenshots",
+      "name": "Desktop Screenshots",
+      "description": "Import screenshots from desktop",
+      "path": "./screenshots",
+      "fileTypes": ["png", "jpg"],
+      "recursive": false,
+      "maxDepth": 1,
+      "includePatterns": ["Screenshot*", "screen*"],
+      "excludePatterns": [],
+      "enabled": true,
+      "autoImport": true,
+      "lastImported": null
+    }
+  ],
+  "globalSettings": {
+    "defaultMaxDepth": 5,
+    "defaultFileTypes": ["jpg", "jpeg", "png"],
+    "skipDuplicates": true,
+    "extractExif": true,
+    "autoCreateThumbnails": true,
+    "importBatchSize": 10
+  }
+}
