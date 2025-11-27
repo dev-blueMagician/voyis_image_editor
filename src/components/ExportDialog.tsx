@@ -56,25 +56,19 @@ export default function ExportDialog({
     }
   };
 
-  const handleSelectFolder = async () => {
-    // This will be handled by the parent component using Electron IPC
-    const ipcRenderer = (window as any).require?.('electron')?.ipcRenderer;
-    if (ipcRenderer) {
-      try {
-        const folderPath = await ipcRenderer.invoke('select-folder');
-        if (folderPath) {
-          setOutputFolder(folderPath);
-        }
-      } catch (error) {
-        console.error('Failed to select folder:', error);
-      }
-    }
-  };
+const handleSelectFolder = async () => {
+  try {
+    const folderPath = await (window as any).electronAPI?.selectFolder();
+    if (folderPath) setOutputFolder(folderPath);
+  } catch (error) {
+    console.error("Failed to select folder:", error);
+  }
+};
 
   return (
     <Dialog open={isOpen} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        <Typography variant="h6" component="h2">
+        <Typography variant="h6">
           Batch Export Images
         </Typography>
       </DialogTitle>
@@ -82,7 +76,7 @@ export default function ExportDialog({
       <DialogContent>
         <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
           <Box>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" component="span" color="text.secondary">
               Exporting <Chip color="primary" size="small" label={selectedCount} /> selected images
             </Typography>
           </Box>

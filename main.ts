@@ -58,15 +58,10 @@ ipcMain.on(
 
 // Handle folder selection
 ipcMain.handle('select-folder', async () => {
-  const result = await dialog.showOpenDialog(mainWindow!, {
+  const result = await dialog.showOpenDialog({
     properties: ['openDirectory']
   });
-
-  if (result.canceled) {
-    return null;
-  }
-
-  return result.filePaths[0];
+  return result.canceled ? null : result.filePaths[0];
 });
 
 // Handle image export with format conversion
@@ -105,6 +100,33 @@ ipcMain.handle('export-images', async (event, files: any[], folderPath: string, 
     throw error;
   }
 });
+
+// // Handle saving cropped image
+// ipcMain.handle('save-cropped-image', async (event, base64Data: string, filename: string) => {
+//   try {
+//     const result = await dialog.showSaveDialog(mainWindow!, {
+//       title: 'Save Cropped Image',
+//       defaultPath: filename,
+//       filters: [
+//         { name: 'PNG Images', extensions: ['png'] },
+//         { name: 'All Files', extensions: ['*'] }
+//       ]
+//     });
+
+//     if (result.canceled || !result.filePath) {
+//       return { success: false, canceled: true };
+//     }
+
+//     // Convert base64 to buffer and save
+//     const buffer = Buffer.from(base64Data, 'base64');
+//     fs.writeFileSync(result.filePath, buffer);
+
+//     return { success: true, filePath: result.filePath };
+//   } catch (error) {
+//     console.error('Save cropped image error:', error);
+//     throw error;
+//   }
+// });
 
 /* -------------------------------
      APP LIFE CYCLE

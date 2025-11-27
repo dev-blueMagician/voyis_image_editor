@@ -189,6 +189,26 @@ app.get('/images/:id', (req, res) => {
   });
 });
 
+app.patch('/images/:id', (req, res) => {
+  const fields = req.body;
+  const id = req.params.id;
+
+  const columns = Object.keys(fields);
+  const values = Object.values(fields);
+
+  const setClause = columns.map(col => `${col} = ?`).join(', ');
+
+  db.run(
+    `UPDATE images SET ${setClause} WHERE id = ?`,
+    [...values, id],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) return res.status(404).json({ error: 'Image not found' });
+      res.json({ message: 'Updated', updatedId: id });
+    }
+  );
+});
+
 app.delete('/images/:id', (req, res) => {
   db.get('SELECT * FROM images WHERE id = ?', [req.params.id], (err, row) => {
     if (err) {

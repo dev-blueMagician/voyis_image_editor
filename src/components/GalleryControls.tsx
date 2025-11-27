@@ -31,10 +31,10 @@ interface GalleryControlsProps {
   onFilterChange: (filter: string) => void;
 }
 
-// Safe way to access electron APIs
-const getIpcRenderer = () => {
-  if (typeof window !== 'undefined' && window.require) {
-    return window.require('electron').ipcRenderer;
+// Safe way to access electron APIs through preload script
+const getElectronAPI = () => {
+  if (typeof window !== 'undefined' && (window as any).electronAPI) {
+    return (window as any).electronAPI;
   }
   return null;
 };
@@ -54,7 +54,12 @@ export default function GalleryControls({
   };
 
   const handleExportWithFormat = async (format: string, folderPath: string) => {
-    const ipcRenderer = getIpcRenderer();
+    const electronAPI = getElectronAPI();
+
+    if (!electronAPI) {
+      alert('Electron API not available. Please restart the application.');
+      return;
+    }
 
     try {
       const files = [];
@@ -69,7 +74,7 @@ export default function GalleryControls({
         }
       }
 
-      await ipcRenderer.invoke('export-images', files, folderPath, format);
+      await electronAPI.exportImages(files, folderPath, format);
 
       // Clear selection after export
       onSelectAll(false);
