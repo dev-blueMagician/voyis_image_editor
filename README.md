@@ -7,7 +7,7 @@ An Electron-based image editor application built with Next.js, TypeScript, and M
 - **File Upload**: Upload JPG, PNG, TIF images up to 4K quality with batch processing
 - **Gallery Viewer**: Thumbnail gallery with filtering and batch selection
 - **Single Image Viewer**: Pan, zoom, and area selection with cropping
-- **Server Synchronization**: Sync with SQLite database via REST API
+- **Server Synchronization**: Sync with PostgreSQL database via REST API
 - **Folder Configuration**: JSON-based batch import from configured folders
 - **Batch Export**: Export images with native folder selection
 - **EXIF Data Management**: Automatic extraction and editing of image metadata
@@ -38,38 +38,92 @@ The application includes advanced WebAssembly-based image processing capabilitie
 ## Setup Instructions
 
 ### Prerequisites
-- Node.js 18+
+- Docker and Docker Compose
+- Node.js 18+ (for development)
 - Git
 
-### 1. Clone the Repository
+### Option 1: Docker Setup (Recommended)
+
+#### 1. Clone the Repository
 ```bash
 git clone <repository-url>
 cd voyis-image-editor
 ```
 
-### 2. Install Dependencies
+#### 2. Start the Complete Environment
 ```bash
-# Main application dependencies
+# Start PostgreSQL database and API server
+docker-compose up -d
+```
+
+This will start:
+- **PostgreSQL database** on port 5432
+- **API server** on port 3001
+- **Persistent data storage** for database and uploads
+
+#### 3. Run the Electron Application
+```bash
+npm run electron-dev
+```
+
+### Option 2: Development Setup
+
+#### 1. Clone and Install Dependencies
+```bash
+git clone <repository-url>
+cd voyis-image-editor
+
+# Install main application dependencies
 npm install
 
-# Server dependencies
+# Install server dependencies
 cd server
 npm install
 cd ..
 ```
 
-### 3. Start the API Server
+#### 2. Set up Environment Variables
+```bash
+cd server
+cp .env.example .env
+# Edit .env with your database configuration
+```
+
+#### 3. Start PostgreSQL Database
+```bash
+# Using Docker for just the database
+docker run --name voyis-postgres -e POSTGRES_DB=voyis_db -e POSTGRES_USER=voyis_user -e POSTGRES_PASSWORD=voyis_pass -p 5432:5432 -d postgres:15-alpine
+```
+
+#### 4. Start the API Server
 ```bash
 cd server
 npm start
 ```
 
-This will start the API server on port 3001 with SQLite database.
-
-### 4. Run the Electron Application
+#### 5. Run the Electron Application
 In a new terminal:
 ```bash
 npm run electron-dev
+```
+
+### Docker Management Commands
+
+```bash
+# View running containers
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Rebuild and restart
+docker-compose up -d --build
+
+# Clean up (removes volumes too)
+docker-compose down -v
 ```
 
 ## Usage Guide
@@ -135,9 +189,11 @@ npm run electron-dev
 ## Technology Stack
 
 - **Frontend**: Next.js 14, TypeScript, Material-UI, Fabric.js
-- **Backend**: Node.js Express server with SQLite database
+- **Backend**: Node.js Express server with PostgreSQL database
 - **Desktop**: Electron with secure IPC communication
-- **Image Processing**: Fabric.js for canvas manipulation
+- **Containerization**: Docker & Docker Compose
+- **Image Processing**: Fabric.js + WASM-based client-side optimization
+- **Database**: PostgreSQL with persistent volume storage
 
 ## Conflict Resolution Strategy
 

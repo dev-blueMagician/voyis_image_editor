@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
     environment:
       POSTGRES_DB: voyis_db
       POSTGRES_USER: voyis_user
@@ -12,18 +12,42 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voyis_user -d voyis_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - voyis-network
 
   api:
-    build: ./server
+    build:
+      context: ./server
+      dockerfile: Dockerfile
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: postgresql://voyis_user:voyis_pass@postgres:5432/voyis_db
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: voyis_db
+      DB_USER: voyis_user
+      DB_PASSWORD: voyis_pass
+      NODE_ENV: production
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
       - ./server/uploads:/app/uploads
       - ./mock_data:/app/mock_data
+      - ./folder-config.json:/app/folder-config.json
+    networks:
+      - voyis-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+    driver: local
+
+networks:
+  voyis-network:
+    driver: bridge

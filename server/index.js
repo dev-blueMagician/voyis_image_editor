@@ -1,5 +1,5 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const multer = require('multer');
 const cors = require('cors');
 const path = require('path');
@@ -10,45 +10,73 @@ const FolderConfigManager = require('./folderConfig');
 require('dotenv').config();
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
 // Database connection
-const db = new sqlite3.Database('./database.db', (err) => {
+const pool = new Pool({
+  host: process.env.DB_HOST || 'postgres',
+  port: process.env.DB_PORT || 5432,
+  database: process.env.DB_NAME || 'voyis_db',
+  user: process.env.DB_USER || 'voyis_user',
+  password: process.env.DB_PASSWORD || 'voyis_pass',
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+// Test database connection and create tables
+pool.connect((err, client, release) => {
   if (err) {
-    console.error('Error opening database:', err.message);
-  } else {
-    console.log('Connected to SQLite database.');
-    db.serialize(() => {
-      // Create table if not exists
-      db.run(`CREATE TABLE IF NOT EXISTS images (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT NOT NULL,
-        filepath TEXT NOT NULL,
-        mimetype TEXT,
-        size INTEGER,
-        uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        exif_data TEXT
-      )`);
-
-      // Create stats table for tracking totals
-      db.run(`CREATE TABLE IF NOT EXISTS stats (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        total_files INTEGER DEFAULT 0,
-        total_size INTEGER DEFAULT 0,
-        corrupted_files INTEGER DEFAULT 0
-      )`);
-
-      // Insert initial stats if not exists
-      db.run(`INSERT OR IGNORE INTO stats (id, total_files, total_size, corrupted_files) VALUES (1, 0, 0, 0)`);
-    })
+    console.error('Error connecting to PostgreSQL:', err.message);
+    return;
   }
+  console.log('Connected to PostgreSQL database.');
+
+  // Create tables
+  const createTablesQuery = `
+    CREATE TABLE IF NOT EXISTS images (
+      id SERIAL PRIMARY KEY,
+      filename VARCHAR(255) NOT NULL,
+      filepath VARCHAR(500) NOT NULL,
+      mimetype VARCHAR(100),
+      size BIGINT,
+      uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      exif_data JSONB
+    );
+
+    CREATE TABLE IF NOT EXISTS stats (
+      id SERIAL PRIMARY KEY,
+      total_files INTEGER DEFAULT 0,
+      total_size BIGINT DEFAULT 0,
+      corrupted_files INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Insert initial stats row if not exists
+    INSERT INTO stats (id, total_files, total_size, corrupted_files)
+    VALUES (1, 0, 0, 0)
+    ON CONFLICT (id) DO NOTHING;
+  `;
+
+  client.query(createTablesQuery, (err) => {
+    release();
+    if (err) {
+      console.error('Error creating tables:', err.message);
+    } else {
+      console.log('Database tables created/verified.');
+    }
+  });
 });
 
 // Initialize folder config manager
 const folderConfigManager = new FolderConfigManager();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true
+}));
 app.use(express.json());
 app.use('/uploads', express.static('uploads', {
   setHeaders: (res) => {
@@ -106,34 +134,23 @@ app.post('/upload', upload.array('images'), async (req, res) => {
       // Store relative URL in database
       const relativePath = `/uploads/${file.filename}`;
 
-      const stmt = db.prepare(`
+      const query = `
         INSERT INTO images (filename, filepath, mimetype, size, exif_data)
-        VALUES (?, ?, ?, ?, ?)
-      `);
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+      `;
+      const values = [file.originalname, relativePath, file.mimetype, file.size, exifData];
 
-      await new Promise((resolve, reject) => {
-        stmt.run(
-          [file.originalname, relativePath, file.mimetype, file.size, exifData ? JSON.stringify(exifData) : null],
-          function (err) {
-            if (err) {
-              console.error(err);
-              corrupted++;
-              reject(err);
-            } else {
-              results.push({
-                id: this.lastID,
-                filename: file.originalname,
-                filepath: relativePath, // <-- URL-friendly path
-                mimetype: file.mimetype,
-                size: file.size,
-                uploaded_at: new Date().toISOString(),
-                exif_data: exifData ? JSON.stringify(exifData) : null,
-              });
-              resolve();
-            }
-          }
-        );
-        stmt.finalize();
+      const result = await pool.query(query, values);
+
+      results.push({
+        id: result.rows[0].id,
+        filename: file.originalname,
+        filepath: relativePath,
+        mimetype: file.mimetype,
+        size: file.size,
+        uploaded_at: new Date().toISOString(),
+        exif_data: exifData,
       });
     } catch (err) {
       console.error('Error processing file', file.originalname, err);
@@ -143,8 +160,8 @@ app.post('/upload', upload.array('images'), async (req, res) => {
 
   // Update stats
   const uploadedSize = results.reduce((sum, img) => sum + img.size, 0);
-  db.run(
-    `UPDATE stats SET total_files = total_files + ?, total_size = total_size + ?, corrupted_files = corrupted_files + ? WHERE id = 1`,
+  await pool.query(
+    `UPDATE stats SET total_files = total_files + $1, total_size = total_size + $2, corrupted_files = corrupted_files + $3, updated_at = CURRENT_TIMESTAMP WHERE id = 1`,
     [results.length, uploadedSize, corrupted]
   );
 
@@ -157,91 +174,94 @@ app.post('/upload', upload.array('images'), async (req, res) => {
   });
 });
 
-app.get('/images', (req, res) => {
-  db.all('SELECT * FROM images ORDER BY uploaded_at DESC', [], (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.json(rows);
-    }
-  });
+app.get('/images', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM images ORDER BY uploaded_at DESC');
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.get('/stats', (req, res) => {
-  db.get('SELECT total_files as totalFiles, total_size as totalSize, corrupted_files as corrupted FROM stats WHERE id = 1', [], (err, row) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.json({
-        totalFiles: row?.totalFiles || 0,
-        totalSize: row?.totalSize || 0,
-        corrupted: row?.corrupted || 0
-      });
-    }
-  });
+app.get('/stats', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT total_files as "totalFiles", total_size as "totalSize", corrupted_files as "corrupted" FROM stats WHERE id = 1');
+    const stats = result.rows[0] || { totalFiles: 0, totalSize: 0, corrupted: 0 };
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.get('/images/:id', (req, res) => {
-  db.get('SELECT * FROM images WHERE id = ?', [req.params.id], (err, row) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-    } else if (!row) {
-      res.status(404).json({ error: 'Image not found' });
-    } else {
-      res.json(row);
+app.get('/images/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM images WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Image not found' });
     }
-  });
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.patch('/images/:id', (req, res) => {
-  const fields = req.body;
-  const id = req.params.id;
+app.patch('/images/:id', async (req, res) => {
+  try {
+    const fields = req.body;
+    const id = req.params.id;
 
-  const columns = Object.keys(fields);
-  const values = Object.values(fields);
+    const columns = Object.keys(fields);
+    const values = Object.values(fields);
 
-  const setClause = columns.map(col => `${col} = ?`).join(', ');
+    const setClause = columns.map((col, index) => `${col} = $${index + 1}`).join(', ');
 
-  db.run(
-    `UPDATE images SET ${setClause} WHERE id = ?`,
-    [...values, id],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      if (this.changes === 0) return res.status(404).json({ error: 'Image not found' });
-      res.json({ message: 'Updated', updatedId: id });
+    const query = `UPDATE images SET ${setClause} WHERE id = $${columns.length + 1}`;
+    const result = await pool.query(query, [...values, id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Image not found' });
     }
-  );
+
+    res.json({ message: 'Updated', updatedId: id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-app.delete('/images/:id', (req, res) => {
-  db.get('SELECT * FROM images WHERE id = ?', [req.params.id], (err, row) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-    } else if (!row) {
-      res.status(404).json({ error: 'Image not found' });
-    } else {
-      const fileSize = row.size;
-      fs.unlink(row.filepath, (unlinkErr) => {
-        if (unlinkErr) {
-          console.error('Error deleting file:', unlinkErr);
-        }
-        db.run('DELETE FROM images WHERE id = ?', [req.params.id], (deleteErr) => {
-          if (deleteErr) {
-            res.status(500).json({ error: deleteErr.message });
-          } else {
-            // Update stats
-            db.run(
-              `UPDATE stats SET total_files = total_files - 1, total_size = total_size - ? WHERE id = 1`,
-              [fileSize]
-            );
-            res.json({ message: 'Image deleted' });
-          }
-        });
-      });
+app.delete('/images/:id', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM images WHERE id = $1', [req.params.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Image not found' });
     }
-  });
-});
 
+    const image = result.rows[0];
+    const fileSize = image.size;
+
+    // Delete file
+    fs.unlink(image.filepath, async (unlinkErr) => {
+      if (unlinkErr) {
+        console.error('Error deleting file:', unlinkErr);
+      }
+
+      try {
+        await pool.query('DELETE FROM images WHERE id = $1', [req.params.id]);
+
+        // Update stats
+        await pool.query(
+          `UPDATE stats SET total_files = total_files - 1, total_size = total_size - $1, updated_at = CURRENT_TIMESTAMP WHERE id = 1`,
+          [fileSize]
+        );
+
+        res.json({ message: 'Image deleted' });
+      } catch (deleteErr) {
+        res.status(500).json({ error: deleteErr.message });
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Folder Configuration API Endpoints
 
@@ -320,11 +340,11 @@ app.post('/folder-configs/:id/import', async (req, res) => {
     }
 
     // Perform the import
-    const results = await folderConfigManager.scanFolder(config, db);
+    const results = await folderConfigManager.scanFolder(config, pool);
 
     // Update stats
-    db.run(
-      `UPDATE stats SET total_files = total_files + ?, total_size = total_size + ? WHERE id = 1`,
+    await pool.query(
+      `UPDATE stats SET total_files = total_files + $1, total_size = total_size + $2, updated_at = CURRENT_TIMESTAMP WHERE id = 1`,
       [results.processed, results.files.reduce((sum, file) => sum + file.size, 0)]
     );
 
@@ -351,7 +371,7 @@ app.post('/folder-configs/import-all', async (req, res) => {
     for (const config of enabledConfigs) {
       try {
         console.log(`📁 Processing config: ${config.name}`);
-        const configResults = await folderConfigManager.scanFolder(config, db);
+        const configResults = await folderConfigManager.scanFolder(config, pool);
         results.push({
           config: config.name,
           results: configResults
@@ -375,8 +395,8 @@ app.post('/folder-configs/import-all', async (req, res) => {
     }, 0);
 
     if (totalProcessed > 0) {
-      db.run(
-        `UPDATE stats SET total_files = total_files + ?, total_size = total_size + ? WHERE id = 1`,
+      await pool.query(
+        `UPDATE stats SET total_files = total_files + $1, total_size = total_size + $2, updated_at = CURRENT_TIMESTAMP WHERE id = 1`,
         [totalProcessed, totalSize]
       );
     }
@@ -399,6 +419,12 @@ app.post('/sync', async (req, res) => {
   res.json({ message: 'Sync completed' });
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
 app.listen(port, () => {
-  console.log(`API server running on port ${port}`);
+  console.log(`🚀 API server running on port ${port}`);
+  console.log(`📊 Health check: http://localhost:${port}/health`);
 });

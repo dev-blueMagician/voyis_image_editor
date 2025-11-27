@@ -227,7 +227,7 @@ export default function UploadPanel({ onUpload, refreshTrigger }: { onUpload: ()
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  🚀 WASM Image Processing
+                  🚀 Image Preprocessing
                 </Typography>
                 {wasmReady && (
                   <Chip
