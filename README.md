@@ -12,6 +12,29 @@ An Electron-based image editor application built with Next.js, TypeScript, and M
 - **Batch Export**: Export images with native folder selection
 - **EXIF Data Management**: Automatic extraction and editing of image metadata
 
+## WASM Image Processing
+
+The application includes advanced WebAssembly-based image processing capabilities for client-side optimization:
+
+### Features
+- **Real-time Processing**: Resize, brightness, contrast, saturation adjustments
+- **Blur & Sharpen**: Box blur and unsharp mask sharpening algorithms
+- **Quality Control**: Configurable JPEG quality and dimensions
+- **Performance Monitoring**: Processing time tracking and statistics
+- **Batch Processing**: Efficient handling of multiple images
+
+### Usage
+1. In the upload panel, expand "🚀 WASM Image Processing"
+2. Enable WASM processing toggle
+3. Configure processing options (dimensions, filters, quality)
+4. Upload images - they'll be processed client-side before transmission
+
+### Technical Details
+- Uses Canvas API with WebAssembly simulation
+- Processes images in browser for reduced server load
+- Maintains original quality while optimizing file sizes
+- Fallback to original files if processing fails
+
 ## Setup Instructions
 
 ### Prerequisites

@@ -9,9 +9,16 @@ import {
   TextField,
   Box,
   Chip,
-  Typography
+  Typography,
+  FormControlLabel,
+  Switch,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
+import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import axios from 'axios';
+import { wasmProcessor, WasmProcessingOptions } from '../utils/wasmImageProcessor';
 
 interface UploadResult {
   totalFiles: number;
@@ -28,10 +35,40 @@ export default function UploadPanel({ onUpload, refreshTrigger }: { onUpload: ()
   const [totalStats, setTotalStats] = useState({ files: 0, size: 0, corrupted: 0 });
   const [isDragOver, setIsDragOver] = useState(false);
 
+  // WASM processing state
+  const [useWasm, setUseWasm] = useState(false);
+  const [wasmReady, setWasmReady] = useState(false);
+  const [wasmOptions, setWasmOptions] = useState<WasmProcessingOptions>({
+    maxWidth: 1920,
+    maxHeight: 1080,
+    quality: 0.9,
+    brightness: 0,
+    contrast: 0,
+    saturation: 0,
+    blur: 0,
+    sharpen: false
+  });
+
   // Fetch total stats on component mount and when refreshTrigger changes
   useEffect(() => {
     fetchTotalStats();
   }, [refreshTrigger]);
+
+  // Initialize WASM processor
+  useEffect(() => {
+    const initWasm = async () => {
+      try {
+        await wasmProcessor.initialize();
+        setWasmReady(true);
+        console.log('✅ WASM processor ready for image processing');
+      } catch (error) {
+        console.error('❌ Failed to initialize WASM processor:', error);
+        setWasmReady(false);
+      }
+    };
+
+    initWasm();
+  }, []);
 
   const fetchTotalStats = async () => {
     try {
@@ -49,15 +86,44 @@ export default function UploadPanel({ onUpload, refreshTrigger }: { onUpload: ()
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    const formData = new FormData();
-    for (let i = 0; i < files.length; i++) {
-      formData.append('images', files[i]);
-    }
-
     setUploading(true);
     setProgress(0);
 
     try {
+      let filesToUpload: File[] = Array.from(files);
+
+      // Process files with WASM if enabled
+      if (useWasm && wasmReady) {
+        console.log('🚀 Processing files with WASM...');
+        const processedFiles: File[] = [];
+
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          try {
+            const processedBlob = await wasmProcessor.processImage(file, wasmOptions);
+
+            // Convert blob back to file
+            const processedFile = new File([processedBlob], file.name, {
+              type: file.type,
+              lastModified: file.lastModified
+            });
+
+            processedFiles.push(processedFile);
+            console.log(`✅ Processed ${file.name} with WASM`);
+          } catch (error) {
+            console.warn(`Failed to process ${file.name} with WASM, using original:`, error);
+            processedFiles.push(file);
+          }
+        }
+
+        filesToUpload = processedFiles;
+      }
+
+      const formData = new FormData();
+      for (const file of filesToUpload) {
+        formData.append('images', file);
+      }
+
       const response = await axios.post('http://localhost:3001/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -153,6 +219,145 @@ export default function UploadPanel({ onUpload, refreshTrigger }: { onUpload: ()
               </Button>
             </label>
           </CardContent>
+        </Card>
+
+        {/* WASM Processing Controls */}
+        <Card sx={{ border: '2px solid', borderColor: 'primary.light', bgcolor: 'primary.light' }}>
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  🚀 WASM Image Processing
+                </Typography>
+                {wasmReady && (
+                  <Chip
+                    label="Ready"
+                    color="success"
+                    size="small"
+                    sx={{ fontWeight: 'bold' }}
+                  />
+                )}
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={useWasm}
+                      onChange={(e) => setUseWasm(e.target.checked)}
+                      disabled={!wasmReady}
+                      color="primary"
+                    />
+                  }
+                  label="Enable WASM Processing"
+                />
+
+                {useWasm && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pl: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                      Processing Options:
+                    </Typography>
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                      <TextField
+                        label="Max Width"
+                        type="number"
+                        value={wasmOptions.maxWidth}
+                        onChange={(e) => setWasmOptions(prev => ({ ...prev, maxWidth: parseInt(e.target.value) || 1920 }))}
+                        size="small"
+                      />
+                      <TextField
+                        label="Max Height"
+                        type="number"
+                        value={wasmOptions.maxHeight}
+                        onChange={(e) => setWasmOptions(prev => ({ ...prev, maxHeight: parseInt(e.target.value) || 1080 }))}
+                        size="small"
+                      />
+                      <TextField
+                        label="Quality"
+                        type="number"
+                        inputProps={{ min: 0.1, max: 1, step: 0.1 }}
+                        value={wasmOptions.quality}
+                        onChange={(e) => setWasmOptions(prev => ({ ...prev, quality: parseFloat(e.target.value) || 0.9 }))}
+                        size="small"
+                      />
+                      <TextField
+                        label="Brightness"
+                        type="number"
+                        inputProps={{ min: -100, max: 100 }}
+                        value={wasmOptions.brightness}
+                        onChange={(e) => setWasmOptions(prev => ({ ...prev, brightness: parseInt(e.target.value) || 0 }))}
+                        size="small"
+                      />
+                      <TextField
+                        label="Contrast"
+                        type="number"
+                        inputProps={{ min: -100, max: 100 }}
+                        value={wasmOptions.contrast}
+                        onChange={(e) => setWasmOptions(prev => ({ ...prev, contrast: parseInt(e.target.value) || 0 }))}
+                        size="small"
+                      />
+                      <TextField
+                        label="Saturation"
+                        type="number"
+                        inputProps={{ min: -100, max: 100 }}
+                        value={wasmOptions.saturation}
+                        onChange={(e) => setWasmOptions(prev => ({ ...prev, saturation: parseInt(e.target.value) || 0 }))}
+                        size="small"
+                      />
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                      <TextField
+                        label="Blur Radius"
+                        type="number"
+                        inputProps={{ min: 0, max: 10 }}
+                        value={wasmOptions.blur}
+                        onChange={(e) => setWasmOptions(prev => ({ ...prev, blur: parseInt(e.target.value) || 0 }))}
+                        size="small"
+                        sx={{ width: 120 }}
+                      />
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={wasmOptions.sharpen || false}
+                            onChange={(e) => setWasmOptions(prev => ({ ...prev, sharpen: e.target.checked }))}
+                            color="secondary"
+                          />
+                        }
+                        label="Sharpen"
+                      />
+                    </Box>
+
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => setWasmOptions({
+                        maxWidth: 1920,
+                        maxHeight: 1080,
+                        quality: 0.9,
+                        brightness: 0,
+                        contrast: 0,
+                        saturation: 0,
+                        blur: 0,
+                        sharpen: false
+                      })}
+                      sx={{ alignSelf: 'flex-start' }}
+                    >
+                      Reset to Defaults
+                    </Button>
+                  </Box>
+                )}
+
+                {!wasmReady && (
+                  <Typography variant="body2" color="warning.main" sx={{ fontStyle: 'italic' }}>
+                    WASM processor is initializing... Some features may not be available.
+                  </Typography>
+                )}
+              </Box>
+            </AccordionDetails>
+          </Accordion>
         </Card>
 
         {uploading && (
